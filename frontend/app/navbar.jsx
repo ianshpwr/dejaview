@@ -35,7 +35,7 @@ function Navbar() {
       {/* Left Side: Brand/Home Link */}
       <div>
         <Link href="/" style={{ ...linkStyle, fontSize: "1.5rem", fontWeight: "bold" }}>
-          MyApp
+          DejaView
         </Link>
       </div>
 
