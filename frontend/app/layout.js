@@ -1,11 +1,14 @@
-import { Manrope } from 'next/font/google';
-import './globals.css';
-
+// Explicit viewport settings (must be one of the first exports)
 export const viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
 };
 
+import { Manrope } from 'next/font/google';
+import './globals.css';
+
+// Google font setup
 const manrope = Manrope({
   subsets: ['latin'],
   weight: ['400', '700', '800'],
