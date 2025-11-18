@@ -54,5 +54,15 @@ router.patch('/entries/:id', async (req,res)=>{
     }
 })
 
-
+router.delete('/entries/:id', async (req,res)=>{
+    const entryId = req.params.id;
+    try{
+        await prisma.journal.delete({
+            where : {id : Number(entryId)}
+        });
+        res.status(200).json({message : "Entry deleted successfully"});
+    } catch (err) {
+        res.status(500).json({ message: 'Error deleting journal entry' });
+    }
+})
 export default router;
