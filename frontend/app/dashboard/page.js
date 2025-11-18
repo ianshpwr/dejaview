@@ -16,18 +16,13 @@ export default function Dashboard() {
     if (!token) return null;
 
     try {
-      const res = await fetch(
-        "https://dejaview-l2o0.onrender.com/auth/verify",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch("https://dejaview-l2o0.onrender.com/auth/verify", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (!res.ok) return null;
       const data = await res.json();
-      return data.user || data; // tolerate different backend shapes
+      return data.user || data;
     } catch {
       return null;
     }
@@ -36,27 +31,17 @@ export default function Dashboard() {
   const fetchEntries = async () => {
     try {
       const user = await getUserFromToken();
-
       if (!user) {
         router.push("/");
         return;
       }
 
-      const res = await fetch(
-        `https://dejaview-l2o0.onrender.com/journal/entries/${user.id}`
-      );
-
+      const res = await fetch(`https://dejaview-l2o0.onrender.com/journal/entries/${user.id}`);
       const data = await res.json();
 
       if (!res.ok) throw new Error(data?.message || "Failed to load entries");
 
-      // Normalize entries whether backend returns { entries: [...] } or [...]
-      const entries = Array.isArray(data)
-        ? data
-        : Array.isArray(data.entries)
-        ? data.entries
-        : [];
-
+      const entries = Array.isArray(data) ? data : Array.isArray(data.entries) ? data.entries : [];
       setJournalEntries(entries);
     } catch (err) {
       setError(err?.message || "An error occurred");
@@ -76,54 +61,51 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background-light dark:bg-background-dark text-[#111118] dark:text-white/90">
+    <div className="min-h-screen flex flex-col bg-white text-black">
       {/* Sticky header with Navbar */}
-      <header className="sticky top-0 z-30 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
           <Navbar />
         </div>
       </header>
 
-      {/* Main content area */}
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-4xl font-black">All Entries</h1>
-          <button className="px-4 py-2 bg-primary text-white rounded-lg font-bold">
+      {/* Main content */}
+      <main className="flex-1 w-full max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-10">
+        {/* Header + CTA */}
+        <div className="mb-8 lg:mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 lg:gap-6">
+
+          <button className="px-4 py-2 lg:px-6 lg:py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-900 transition text-base lg:text-lg">
             + New Memory
           </button>
         </div>
 
-        {loading && <p className="text-gray-600">Loading...</p>}
-        {error && <p className="text-red-500">{error}</p>}
+        {/* Loading & Error */}
+        {loading && <p className="text-gray-700 text-base lg:text-lg">Loading...</p>}
+        {error && <p className="text-red-500 text-base lg:text-lg">{error}</p>}
 
-        <div className="flex flex-col gap-6">
+        {/* Entries */}
+        <div className="flex flex-col gap-6 lg:gap-8">
           {journalEntries.map((entry) => (
             <article
               key={entry.id ?? entry._id}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow p-6 border dark:border-gray-800"
+              className="bg-white rounded-xl lg:rounded-2xl shadow-md border border-gray-200 p-4 lg:p-8 hover:shadow-lg transition"
             >
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {entry.createdAt
-                  ? new Date(entry.createdAt).toLocaleDateString()
-                  : "—"}
+              <p className="text-sm lg:text-base text-gray-500">
+                {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() : "—"}
               </p>
 
-              <h2 className="text-lg font-bold mt-1">
-                {entry.title || "Untitled"}
-              </h2>
+              <h2 className="text-xl lg:text-2xl font-semibold mt-2 text-black">{entry.title || "Untitled"}</h2>
 
-              <p className="text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-line">
-                {entry.content || "No content"}
-              </p>
+              <p className="text-base lg:text-lg text-gray-700 mt-4 whitespace-pre-line">{entry.content || "No content"}</p>
 
-              <span className="inline-block mt-3 px-3 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300">
+              <span className="inline-block mt-4 px-3 lg:px-4 py-1 lg:py-2 text-xs lg:text-sm rounded-full bg-gray-100 text-gray-800">
                 {entry.mood || "Memory"}
               </span>
             </article>
           ))}
 
           {!loading && journalEntries.length === 0 && (
-            <p className="text-center text-gray-500">No entries found.</p>
+            <p className="text-center text-gray-600 text-base lg:text-lg">No entries found.</p>
           )}
         </div>
       </main>

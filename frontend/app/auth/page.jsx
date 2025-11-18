@@ -73,7 +73,7 @@ export default function AuthPage() {
     <div className="
       relative flex min-h-screen w-full flex-col items-center justify-center 
       bg-background-light dark:bg-background-dark overflow-hidden 
-      p-[10px] sm:p-6 md:p-8
+      p-4 sm:p-6 lg:p-12
     ">
       {/* Background */}
       <div className="absolute top-0 right-0 w-1/3 max-w-xs md:max-w-sm lg:max-w-md">
@@ -88,24 +88,24 @@ export default function AuthPage() {
       </div>
 
       <div className="flex flex-col w-full max-w-sm md:max-w-lg z-10">
-        <div className="flex flex-col gap-6 sm:gap-8">
+        <div className="flex flex-col gap-6 sm:gap-8 lg:gap-10">
 
           {/* TITLE */}
           <div className="flex flex-col gap-2 sm:gap-3">
-            <div className="text-[#4A4D6B] text-3xl sm:text-6xl font-black">
+            <div className="text-[#4A4D6B] text-3xl sm:text-4xl lg:text-6xl font-black">
               DejaView
             </div>
 
-            <p className="text-[#4A4D6B] text-base sm:text-2xl font-normal">
+            <p className="text-[#4A4D6B] text-sm sm:text-base lg:text-2xl font-normal">
               {mode === 'login' ? 'Welcome Back' : 'Create Your Memory Space'}
             </p>
           </div>
 
           {/* TABS */}
-          <div className="flex w-full bg-gray-100 p-[4px] sm:p-1 rounded-lg">
+          <div className="flex w-full bg-gray-100 p-1 sm:p-2 lg:p-3 rounded-lg">
             <button
               onClick={() => { setMode('login'); setError(null); setSuccess(null); }}
-              className={`w-1/2 py-[6px] sm:py-2 rounded-md text-sm sm:text-lg font-bold ${
+              className={`w-1/2 py-2 sm:py-2 lg:py-4 rounded-md text-sm sm:text-base lg:text-lg font-bold ${
                 mode === 'login'
                   ? 'bg-primary text-black shadow'
                   : 'text-[#4A4D6B] hover:bg-gray-200'
@@ -116,7 +116,7 @@ export default function AuthPage() {
 
             <button
               onClick={() => { setMode('signup'); setError(null); setSuccess(null); }}
-              className={`w-1/2 py-[6px] sm:py-2 rounded-md text-sm sm:text-lg font-bold ${
+              className={`w-1/2 py-2 sm:py-2 lg:py-4 rounded-md text-sm sm:text-base lg:text-lg font-bold ${
                 mode === 'signup'
                   ? 'bg-primary text-black shadow'
                   : 'text-[#4A4D6B] hover:bg-gray-200'
@@ -127,13 +127,13 @@ export default function AuthPage() {
           </div>
 
           {/* FORM */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:gap-4 lg:gap-6">
             {/* NAME (signup only) */}
             {mode === 'signup' && (
               <label className="flex flex-col w-full">
-                <p className="text-[#4A4D6B] text-sm sm:text-base pb-1">Name</p>
+                <p className="text-[#4A4D6B] text-sm sm:text-base lg:text-lg pb-1">Name</p>
                 <input
-                  className="rounded-xl border border-black bg-white h-[42px] sm:h-14 px-3 text-sm sm:text-base"
+                  className="rounded-xl border border-black bg-white h-10 sm:h-12 lg:h-16 px-3 lg:px-4 text-sm sm:text-base lg:text-lg"
                   placeholder="Enter your name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -143,9 +143,9 @@ export default function AuthPage() {
 
             {/* EMAIL */}
             <label className="flex flex-col w-full">
-              <p className="text-[#4A4D6B] text-sm sm:text-base pb-1">Email</p>
+              <p className="text-[#4A4D6B] text-sm sm:text-base lg:text-lg pb-1">Email</p>
               <input
-                className="rounded-xl border border-black bg-white h-[42px] sm:h-14 px-3 text-sm sm:text-base"
+                className="rounded-xl border border-black bg-white h-10 sm:h-12 lg:h-16 px-3 lg:px-4 text-sm sm:text-base lg:text-lg"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -155,10 +155,10 @@ export default function AuthPage() {
             {/* PASSWORD */}
             <label className="flex flex-col w-full">
               <div className="flex justify-between pb-1">
-                <p className="text-[#4A4D6B] text-sm sm:text-base">Password</p>
+                <p className="text-[#4A4D6B] text-sm sm:text-base lg:text-lg">Password</p>
 
                 {mode === 'login' && (
-                  <Link href="/forgot-password" className="text-[#7E95F7] text-xs sm:text-sm">
+                  <Link href="/forgot-password" className="text-[#7E95F7] text-xs sm:text-sm lg:text-base">
                     Forgot Password?
                   </Link>
                 )}
@@ -166,7 +166,7 @@ export default function AuthPage() {
 
               <div className="relative">
                 <input
-                  className="rounded-xl border border-black bg-white h-[42px] sm:h-14 px-3 pr-10 text-sm sm:text-base w-full"
+                  className="rounded-xl border border-black bg-white h-10 sm:h-12 lg:h-16 px-3 pr-10 lg:px-4 text-sm sm:text-base lg:text-lg w-full"
                   placeholder={mode === 'login' ? 'Enter your password' : 'Create a strong password'}
                   type={passwordVisible ? 'text' : 'password'}
                   value={password}
@@ -177,7 +177,7 @@ export default function AuthPage() {
                   onClick={togglePasswordVisibility}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                 >
-                  <span className="material-symbols-outlined text-sm sm:text-lg">
+                  <span className="material-symbols-outlined text-sm sm:text-base lg:text-lg">
                     {passwordVisible ? 'visibility_off' : 'visibility'}
                   </span>
                 </button>
@@ -185,13 +185,13 @@ export default function AuthPage() {
             </label>
 
             {/* FEEDBACK + BUTTON */}
-            <div className="flex flex-col items-center gap-2 pt-2">
-              {error && <p className="text-red-500 text-xs sm:text-sm">{error}</p>}
-              {success && <p className="text-green-500 text-xs sm:text-sm">{success}</p>}
+            <div className="flex flex-col items-center gap-2 lg:gap-3 pt-2 lg:pt-3">
+              {error && <p className="text-red-500 text-xs sm:text-sm lg:text-base">{error}</p>}
+              {success && <p className="text-green-500 text-xs sm:text-sm lg:text-base">{success}</p>}
 
               <button
                 type="submit"
-                className="w-full h-[42px] sm:h-14 rounded-xl bg-[#7E95F7] text-sm sm:text-base font-bold text-white hover:bg-opacity-90 disabled:opacity-60"
+                className="w-full h-12 sm:h-14 lg:h-16 rounded-xl bg-[#7E95F7] text-sm sm:text-base lg:text-lg font-bold text-white hover:bg-opacity-90 disabled:opacity-60"
                 disabled={isLoading}
               >
                 {isLoading
