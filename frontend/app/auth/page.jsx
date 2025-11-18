@@ -121,7 +121,8 @@ export default function AuthPage() {
   return (
     <div className="
       relative flex min-h-screen w-full flex-col items-center justify-center 
-      bg-background-light dark:bg-background-dark overflow-hidden 
+      bg-[#F8F9FF] /* updated from bg-white */
+      overflow-hidden 
       p-4 sm:p-6 lg:p-12
     ">
       {/* Background */}

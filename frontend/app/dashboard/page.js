@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../navbar";
-
+import Link from "next/link";
 export default function Dashboard() {
   const [journalEntries, setJournalEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -141,12 +141,12 @@ export default function Dashboard() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 w-full max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-10">
+      <main className="flex-1 w-full lg:w-[70vw] mx-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-10">
         {/* Header + CTA */}
         <div className="mb-8 lg:mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 lg:gap-6">
-          <button className="px-4 py-2 lg:px-6 lg:py-3 bg-[#7E95F7] text-white rounded-xl font-bold hover:bg-opacity-90 transition text-base lg:text-lg shadow">
-            + New Memory
-          </button>
+          <div className="px-4 py-2 lg:px-6 lg:py-3 bg-[#7E95F7] text-white rounded-xl font-bold hover:bg-opacity-90 transition text-base lg:text-lg shadow">
+           <Link href="/write"> + New Memory</Link>
+          </div>
         </div>
 
         {/* Loading & Error */}
@@ -170,7 +170,7 @@ export default function Dashboard() {
                 {entry.content || "No content"}
               </p>
 
-              <span className="inline-block mt-4 px-3 lg:px-4 py-1 lg:py-2 text-xs lg:text-sm rounded-full bg-[#E0E4FF] text-[#black]">
+              <span className="inline-block mt-4 px-3 lg:px-4 py-1 lg:py-2 text-xs lg:text-sm rounded-full bg-[#E0E4FF] text-black">
                 {entry.mood || "Memory"}
               </span>
             </article>
