@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 
@@ -15,6 +15,55 @@ export default function AuthPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const router = useRouter();
+
+  // Fast local JWT check to prevent redirect flicker
+  const isTokenValidLocally = (token) => {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (!payload) return false;
+      const now = Math.floor(Date.now() / 1000);
+      return !payload.exp || payload.exp > now;
+    } catch {
+      return false;
+    }
+  };
+
+  // Redirect away from /auth when already authenticated
+  useEffect(() => {
+    const checkAuthAndRedirect = async () => {
+      if (typeof window === 'undefined') return;
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // If token looks valid locally, go straight to dashboard (avoid network call)
+      if (isTokenValidLocally(token)) {
+        router.replace('/dashboard');
+        return;
+      }
+
+      // Otherwise try server verify once; if valid, redirect, else remove token
+      try {
+        const res = await fetch('https://dejaview-l2o0.onrender.com/auth/verify', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (res.ok) {
+          router.replace('/dashboard');
+        } else {
+          localStorage.removeItem('token');
+        }
+      } catch (err) {
+        // network error — don't remove token if local check passed (we already handled that case).
+        // If token was invalid locally and network failed, keep user on /auth (no redirect).
+        console.warn('Auth verify network error:', err);
+      }
+    };
+
+    checkAuthAndRedirect();
+  }, [router]);
 
 
   const togglePasswordVisibility = () => {
