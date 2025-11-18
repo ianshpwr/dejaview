@@ -37,4 +37,22 @@ router.post('/entries', async (req, res) => {
     }   
 });
 
+router.patch('/entries/:id', async (req,res)=>{
+    const {title,content} = req.body;
+    const entryId = req.params.id;
+    try{
+        const updatedEntry = await prisma.journal.update({
+            where : {id : Number(entryId)},
+            data : {
+                title : title,
+                content : content
+            }
+        });
+        res.status(200).json(updatedEntry);
+    } catch (err) {
+        res.status(500).json({ message: 'Error updating journal entry' });
+    }
+})
+
+
 export default router;
