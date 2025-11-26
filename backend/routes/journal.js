@@ -1,6 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-
+import { addToFaiss } from "../services/faiss.js";
 const router = express.Router();
 const prisma = new PrismaClient();
 
@@ -24,15 +24,24 @@ router.post('/entries', async (req, res) => {
     const { title, content, userId } = req.body;
 
     try {
+        // 1️⃣ Add to FAISS (generate embedding + store vector)
+        const faissId = await addToFaiss(content);
+
+        // 2️⃣ Save journal in database with FAISS ID
         const newEntry = await prisma.journal.create({
             data: {
-                title : title,
-                content : content,
-                userId : Number(userId),
+                title: title,
+                content: content,
+                userId: Number(userId),
+                faissId: faissId,   // <-- SAVE VECTOR ID
             },
         });
+
+        // 3️⃣ Return response
         res.status(201).json(newEntry);
+
     } catch (err) {
+        console.error(err);
         res.status(500).json({ message: 'Error creating journal entry' });
     }   
 });
