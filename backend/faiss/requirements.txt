@@ -1,4 +1,4 @@
-faiss-cpu==1.7.4
+faiss-cpu==1.11.0
 fastembed==0.2.6
 numpy==2.0.2
 
