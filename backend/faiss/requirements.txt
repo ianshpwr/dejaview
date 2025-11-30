@@ -1,5 +1,6 @@
-faiss-cpu
-sentence-transformers
-numpy
-fastapi
-uvicorn
+faiss-cpu==1.7.4
+fastembed==0.2.6
+numpy==2.0.2
+
+fastapi==0.111.0
+uvicorn==0.30.0
