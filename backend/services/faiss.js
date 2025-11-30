@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const FAISS_URL = "http://127.0.0.1:8001";
+const FAISS_URL = "http://127.0.0.1:8000";
 
 export async function addToFaiss(text) {
   const res = await axios.post(`${FAISS_URL}/add`, { text });
