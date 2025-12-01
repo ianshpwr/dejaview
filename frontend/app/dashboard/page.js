@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../navbar";
 import Link from "next/link";
+
 export default function Dashboard() {
   const [journalEntries, setJournalEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sortOrder, setSortOrder] = useState("latest"); // ⭐ NEW STATE
 
   const router = useRouter();
 
@@ -14,7 +16,9 @@ export default function Dashboard() {
     try {
       const parts = token.split(".");
       if (parts.length !== 3) return null;
-      const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+      const payload = JSON.parse(
+        atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+      );
       return payload || null;
     } catch {
       return null;
@@ -26,10 +30,13 @@ export default function Dashboard() {
     const token = localStorage.getItem("token");
     if (!token) return null;
 
-    // Try local decode first (fast, prevents flicker)
     const payload = decodeTokenPayload(token);
-    if (payload && ((payload.exp && payload.exp > Math.floor(Date.now() / 1000)) || !payload.exp)) {
-      // map common id fields
+    if (
+      payload &&
+      ((payload.exp &&
+        payload.exp > Math.floor(Date.now() / 1000)) ||
+        !payload.exp)
+    ) {
       return {
         id: payload.id || payload.sub || payload.userId,
         name: payload.name || null,
@@ -37,9 +44,8 @@ export default function Dashboard() {
       };
     }
 
-    // Fallback to server verify only if local decode failed
     try {
-      const res = await fetch("https://dejaview-l2o0.onrender.com/auth/verify", {
+      const res = await fetch("http://localhost:5000/auth/verify", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return null;
@@ -55,69 +61,85 @@ export default function Dashboard() {
       const user = await getUserFromToken();
 
       if (!user) {
-        // no valid token/user -> send to auth
         localStorage.removeItem("token");
         router.replace("/auth");
         return;
       }
 
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (!token) {
-        localStorage.removeItem("token");
-        router.replace("/auth");
-        return;
-      }
+      const token = localStorage.getItem("token");
 
-      let res;
-      let data;
-
-      // 1) Try the user-id endpoint first (avoid 404 from token-only endpoint)
-      if (user.id) {
-        res = await fetch(`https://dejaview-l2o0.onrender.com/journal/entries/${user.id}`, {
+      const res = await fetch(
+        `http://localhost:5000/journal/entries/${user.id}`,
+        {
           method: "GET",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        });
-
-        if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem("token");
-          router.replace("/auth");
-          return;
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-
-        if (res.ok) {
-          data = await res.json().catch(() => ({}));
-          const entries = Array.isArray(data) ? data : Array.isArray(data.entries) ? data.entries : [];
-          setJournalEntries(entries);
-          return;
-        }
-        // if not ok (e.g. 404), fall through to try token-only endpoint
-      }
-
-      // 2) Fallback: try token-only endpoint
-      res = await fetch("https://dejaview-l2o0.onrender.com/journal/entries", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem("token");
-        router.replace("/auth");
-        return;
-      }
+      );
 
       if (!res.ok) {
-        // surface backend message when available
         const errBody = await res.json().catch(() => ({}));
         throw new Error(errBody?.message || "Failed to load entries");
       }
 
-      data = await res.json().catch(() => ({}));
-      const entries = Array.isArray(data) ? data : Array.isArray(data.entries) ? data.entries : [];
-      setJournalEntries(entries);
+      const data = await res.json();
+      const entries = Array.isArray(data.entries)
+        ? data.entries
+        : Array.isArray(data)
+        ? data
+        : [];
+
+      // ⭐ SORT IMMEDIATELY AFTER FETCH
+      const sorted = sortEntries(entries, sortOrder);
+      setJournalEntries(sorted);
+
     } catch (err) {
       setError(err?.message || "An error occurred");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ⭐ SORT FUNCTION
+  const sortEntries = (entries, order) => {
+    return [...entries].sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return order === "latest" ? dateB - dateA : dateA - dateB;
+    });
+  };
+
+  // ⭐ HANDLE SORT CHANGE
+  const handleSortChange = (e) => {
+    const newSort = e.target.value;
+    setSortOrder(newSort);
+    setJournalEntries(sortEntries(journalEntries, newSort));
+  };
+
+  // ⭐ DELETE FUNCTION
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this memory?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `http://localhost:5000/journal/entries/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to delete entry");
+
+      setJournalEntries((prev) => prev.filter((e) => e.id !== id));
+    } catch (err) {
+      alert("Error deleting entry: " + err.message);
     }
   };
 
@@ -133,51 +155,75 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F9FF] text-[#4A4D6B]">
-      {/* Sticky header with Navbar */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
           <Navbar />
         </div>
       </header>
 
-      {/* Main content */}
       <main className="flex-1 w-full lg:w-[70vw] mx-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-10">
-        {/* Header + CTA */}
-        <div className="mb-8 lg:mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 lg:gap-6">
-          <div className="px-4 py-2 lg:px-6 lg:py-3 bg-[#7E95F7] text-white rounded-xl font-bold hover:bg-opacity-90 transition text-base lg:text-lg shadow">
-           <Link href="/write"> + New Memory</Link>
+
+        {/* Header Section */}
+        <div className="mb-8 lg:mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
+
+          {/* New Memory */}
+          <div className="px-4 py-2 bg-[#7E95F7] text-white rounded-xl font-bold shadow hover:bg-opacity-90">
+            <Link href="/write">+ New Memory</Link>
           </div>
+
+          {/* ⭐ SORT DROPDOWN */}
+          <select
+            value={sortOrder}
+            onChange={handleSortChange}
+            className="px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm text-[#4A4D6B] hover:border-[#7E95F7] focus:outline-none focus:ring-2 focus:ring-[#7E95F7]"
+          >
+            <option value="latest">📅 Latest First</option>
+            <option value="oldest">🕒 Oldest First</option>
+          </select>
+
         </div>
 
-        {/* Loading & Error */}
-        {loading && <p className="text-[#4A4D6B] text-base lg:text-lg">Loading...</p>}
-        {error && <p className="text-red-500 text-base lg:text-lg">{error}</p>}
+        {loading && <p className="text-lg">Loading...</p>}
+        {error && <p className="text-red-500 text-lg">{error}</p>}
 
         {/* Entries */}
         <div className="flex flex-col gap-6 lg:gap-8">
           {journalEntries.map((entry) => (
             <article
-              key={entry.id ?? entry._id}
-              className="bg-white rounded-2xl shadow-md border border-gray-200 p-4 lg:p-6 hover:shadow-lg transition"
+              key={entry.id}
+              className="bg-white rounded-2xl shadow-md border p-4 lg:p-6 hover:shadow-lg transition"
             >
-              <p className="text-sm lg:text-base text-gray-500">
-                {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() : "—"}
+              <p className="text-sm text-gray-500">
+                {entry.createdAt
+                  ? new Date(entry.createdAt).toLocaleDateString()
+                  : "—"}
               </p>
 
-              <h2 className="text-xl lg:text-2xl font-bold mt-2">{entry.title || "Untitled"}</h2>
+              <h2 className="text-xl lg:text-2xl font-bold mt-2">
+                {entry.title || "Untitled"}
+              </h2>
 
-              <p className="text-base md:text-lg text-[#4A4D6B] mt-4 whitespace-pre-line">
+              <p className="text-base text-[#4A4D6B] mt-4 whitespace-pre-line">
                 {entry.content || "No content"}
               </p>
 
-              <span className="inline-block mt-4 px-3 lg:px-4 py-1 lg:py-2 text-xs lg:text-sm rounded-full bg-[#E0E4FF] text-black">
+              <span className="inline-block mt-4 px-4 py-2 text-xs rounded-full bg-[#E0E4FF]">
                 {entry.mood || "Memory"}
               </span>
+
+              <button
+                onClick={() => handleDelete(entry.id)}
+                className="mt-4 ml-3 px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+              >
+                Delete
+              </button>
             </article>
           ))}
 
           {!loading && journalEntries.length === 0 && (
-            <p className="text-center text-gray-500 text-base lg:text-lg">No entries found.</p>
+            <p className="text-center text-gray-500 text-lg">
+              No entries found.
+            </p>
           )}
         </div>
       </main>

@@ -92,7 +92,7 @@ export default function NewJournalEntry() {
       // Retrieve token again for the Authorization header (Best Practice)
       const token = localStorage.getItem("token"); 
 
-      const response = await fetch("https://dejaview-l2o0.onrender.com/journal/entries", {
+      const response = await fetch("http://localhost:5000/journal/entries", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

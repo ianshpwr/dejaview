@@ -3,49 +3,32 @@
 import Navbar from "../navbar";
 import { useState, useEffect } from "react";
 
-// Decode JWT payload safely
 function decodeJWT(token) {
   try {
     const payload = token.split(".")[1];
     return JSON.parse(atob(payload));
-  } catch (err) {
-    console.error("Invalid JWT:", err);
+  } catch {
     return null;
   }
 }
 
 export default function JournalPage() {
   const [query, setQuery] = useState("");
-  const [messages, setMessages] = useState([]); 
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState(null);
 
-  // Load userId from localStorage token
   useEffect(() => {
     const token = localStorage.getItem("token");
-
-    if (token) {
-      const decoded = decodeJWT(token);
-      if (decoded?.userId) {
-        setUserId(decoded.userId);
-      } else {
-        console.warn("userId not found inside JWT payload");
-      }
-    }
+    const decoded = decodeJWT(token);
+    if (decoded?.userId) setUserId(decoded.userId);
   }, []);
 
-  // 🔥 POST API CALL
   const searchEntries = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() || !userId) return;
 
-    if (!userId) {
-      console.error("User ID missing from decoded JWT");
-      return;
-    }
-
-    // Add user message immediately
     const userMessage = { role: "user", content: query };
-    setMessages((prev) => [userMessage, ...prev]);
+    setMessages((prev) => [...prev, userMessage]);  // ⬅️ append, not prepend
 
     try {
       setLoading(true);
@@ -56,111 +39,80 @@ export default function JournalPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // 🔥 Token added
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          query,
-          userId, // 🔥 Send extracted userId
-        }),
+        body: JSON.stringify({ query, userId }),
       });
 
       const data = await res.json();
-      console.log(data)
-      // 1️⃣ Add AI answer
+
       const aiMessage = {
         role: "assistant",
         content: data.answer || "No response received.",
       };
-      setMessages((prev) => [aiMessage, ...prev]);
+      setMessages((prev) => [...prev, aiMessage]);
 
-      // 2️⃣ Add related memories (correct key)
-      if (data.memories && data.memories.length > 0) {
-        const memoryMessage = {
-          role: "assistant",
-          content: `Found ${data.memories.length} related memories:`,
-          memories: data.memories,
-        };
-        setMessages((prev) => [memoryMessage, ...prev]);
-      }
-    } catch (error) {
-      console.error("Post request error:", error);
     } finally {
       setLoading(false);
-      setQuery(""); // clear input
+      setQuery("");
     }
   };
 
   return (
-    <div className="min-h-screen bg-bg-off-white flex flex-col">
+    <div className="min-h-screen bg-[#white] flex flex-col text-gray-200">
       <Navbar />
 
-      {/* Chat Container */}
-      <div className="flex-1 w-full max-w-3xl mx-auto px-4 py-6 flex flex-col-reverse gap-4 overflow-y-auto">
+      {/* CHAT WRAPPER */}
+      <div className="flex-1 w-full max-w-3xl mx-auto px-4 py-6 flex flex-col overflow-y-auto">
 
-        {/* Input always at bottom */}
-        <div className="sticky bottom-0 bg-bg-off-white pb-4">
-          <div className="w-full h-16 px-4 py-3 shadow-lg shadow-accent/10">
-            <div className="flex w-full items-center bg-white/80 rounded-xl h-full">
-              <div className="text-accent pl-5">
-                <span className="material-symbols-outlined text-2xl">
-                  search
-                </span>
-              </div>
+        {/* MESSAGES */}
+        <div className="flex flex-col gap-4 pb-28">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap shadow
+                ${
+                  msg.role === "user"
+                    ? "self-end bg-[#2563eb] text-white rounded-br-sm"
+                    : "self-start bg-[#1f2933] text-gray-200 rounded-bl-sm"
+                }
+              `}
+            >
+              <p>{msg.content}</p>
 
+              {msg.memories && (
+                <div className="mt-3 space-y-3">
+
+                </div>
+              )}
+            </div>
+          ))}
+
+          {loading && (
+            <p className="self-start text-gray-400 text-sm">Thinking…</p>
+          )}
+        </div>
+
+        {/* INPUT BAR */}
+        <div className="fixed bottom-0 left-0 right-0 bg-[#white] border-t border-gray-800 py-3">
+          <div className="max-w-3xl mx-auto px-4">
+            <div className="flex items-center bg-[#0a0a1a] rounded-2xl border border-gray-700 px-4 py-2">
               <input
-                className="flex-1 bg-transparent border-none text-lg px-4 focus:outline-0"
-                placeholder="Ask or search anything…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchEntries()}
+                placeholder="Ask or search anything…"
+                className="flex-1 bg-transparent text-gray-200 outline-none px-2 py-1"
               />
 
               <button
                 onClick={searchEntries}
-                className="mr-4 px-4 py-2 rounded-lg bg-primary text-white font-medium"
+                className="ml-2 px-4 py-2 rounded-xl bg-green-500 text-black font-medium hover:brightness-110"
               >
                 Send
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Messages appear TOP → DOWN */}
-        <div className="flex flex-col gap-4 pb-24">
-          {loading && (
-            <p className="text-center text-accent font-medium">Thinking…</p>
-          )}
-
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`p-4 rounded-xl shadow-md ${
-                msg.role === "user"
-                  ? "bg-primary/20 border border-primary/40 text-primary"
-                  : "bg-white/70 border border-accent/10 text-text-charcoal"
-              }`}
-            >
-              <p className="text-base whitespace-pre-wrap">{msg.content}</p>
-
-              {/* Memory cards */}
-              {msg.memories && (
-                <div className="mt-3 space-y-3">
-                  {msg.memories.map((m) => (
-                    <div
-                      key={m.id}
-                      className="p-3 rounded-lg bg-white border border-accent/20"
-                    >
-                      <p className="font-semibold text-accent">{m.title}</p>
-                      <p className="text-sm mt-1">{m.content}</p>
-                      <p className="text-xs text-text-charcoal/50 mt-2">
-                        {new Date(m.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
         </div>
 
       </div>

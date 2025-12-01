@@ -39,16 +39,16 @@ export default function Navbar() {
             {/* Desktop navigation */}
             <nav className="hidden sm:flex items-center gap-4 lg:gap-8">
               <Link
-                href="/entries"
+                href="/dashboard"
                 className="text-sm lg:text-lg font-medium text-gray-700 hover:text-gray-900"
               >
                 All Entries
               </Link>
               <Link
-                href="/analytics"
+                href="/chat"
                 className="text-sm lg:text-lg font-medium text-gray-700 hover:text-gray-900"
               >
-                Analytics
+                Talk To Your Journal
               </Link>
               <Link
                 href="/settings"

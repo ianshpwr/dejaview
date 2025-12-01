@@ -45,7 +45,7 @@ export default function AuthPage() {
 
       // Otherwise try server verify once; if valid, redirect, else remove token
       try {
-        const res = await fetch('https://dejaview-l2o0.onrender.com/auth/verify', {
+        const res = await fetch('http://localhost:5000/auth/verify', {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
@@ -81,8 +81,8 @@ export default function AuthPage() {
 
   const endpoint =
     mode === 'login'
-      ? 'https://dejaview-l2o0.onrender.com/auth/login'
-      : 'https://dejaview-l2o0.onrender.com/auth/signup';
+      ? 'http://localhost:5000/auth/login'
+      : 'http://localhost:5000/auth/signup';
 
   const body =
     mode === 'login'
