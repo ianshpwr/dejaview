@@ -1,0 +1,39 @@
+# -------- Stage 1: Build wheels --------
+FROM python:3.11-slim-bullseye AS builder
+
+ENV PYTHONUNBUFFERED=1
+WORKDIR /wheels
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libopenblas-dev \
+        liblapack-dev \
+        build-essential \
+        g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+# -------- Stage 2: Runtime image --------
+FROM python:3.11-slim-bullseye
+
+ENV PYTHONUNBUFFERED=1
+WORKDIR /app
+
+# FIXED: correct runtime library names for Debian Bullseye
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libopenblas0 \
+        liblapack3 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /wheels /wheels
+COPY requirements.txt /wheels/requirements.txt
+
+RUN pip install --no-cache-dir --no-index --find-links=/wheels -r /wheels/requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
