@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const FAISS_URL = "http://127.0.0.1:8000";
+const FAISS_URL = "https://dejaview-faiss.onrender.com";
 
 export async function addToFaiss(text) {
   const res = await axios.post(`${FAISS_URL}/add`, { text });

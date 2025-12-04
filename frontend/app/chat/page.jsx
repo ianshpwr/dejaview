@@ -35,7 +35,7 @@ export default function JournalPage() {
 
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/journal/entries/chat", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/journal/entries/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

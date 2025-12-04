@@ -45,7 +45,7 @@ export default function AuthPage() {
 
       // Otherwise try server verify once; if valid, redirect, else remove token
       try {
-        const res = await fetch('http://localhost:5000/auth/verify', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
@@ -81,8 +81,8 @@ export default function AuthPage() {
 
   const endpoint =
     mode === 'login'
-      ? 'http://localhost:5000/auth/login'
-      : 'http://localhost:5000/auth/signup';
+      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`
+      : `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signup`;
 
   const body =
     mode === 'login'
