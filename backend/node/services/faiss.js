@@ -1,4 +1,6 @@
 import axios from "axios";
+import dotenv from "dotenv";
+dotenv.config();
 
 const FAISS_URL = process.env.FAISS_URL;
 
