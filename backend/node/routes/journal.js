@@ -8,6 +8,10 @@ const prisma = new PrismaClient();
 import { askAI } from "../services/chat.js";
 
 // Example route to get all journal entries
+router.get('/', (req, res) => {
+    res.send('Journal API is working');
+});
+
 router.get('/entries/:userId', async (req, res) => {
     try {
         const entries = await prisma.journal.findMany({
