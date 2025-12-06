@@ -12,6 +12,12 @@ router.get('/', (req, res) => {
     res.send('Journal API is working');
 });
 
+router.get("/debug-faiss", (req, res) => {
+  res.json({
+    FAISS_URL: process.env.FAISS_URL,
+  });
+});
+
 router.get('/entries/:userId', async (req, res) => {
     try {
         const entries = await prisma.journal.findMany({
