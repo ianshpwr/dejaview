@@ -7,18 +7,30 @@ import os
 
 app = FastAPI()
 
-# Load FastEmbed model (small, fast, no GPU needed)
-model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
-DIM = model.embedding_size
- # auto = 384
+model = None
+index = None
+DIM = None
 INDEX_PATH = "index.bin"
 
-# Load or create FAISS index
-if os.path.exists(INDEX_PATH):
-    index = faiss.read_index(INDEX_PATH)
-else:
-    index = faiss.IndexFlatL2(DIM)
-    faiss.write_index(index, INDEX_PATH)
+@app.on_event("startup")
+def load_everything():
+    global model, DIM, index
+
+    print("🚀 Loading embedding model...")
+    model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+    DIM = model.embedding_size
+
+    print("🚀 Loading FAISS index...")
+    if os.path.exists(INDEX_PATH):
+        index = faiss.read_index(INDEX_PATH)
+        print("FAISS index loaded.")
+    else:
+        index = faiss.IndexFlatL2(DIM)
+        faiss.write_index(index, INDEX_PATH)
+        print("Created new FAISS index.")
+
+    print("🚀 Startup complete! Server ready.")
+
 
 class AddRequest(BaseModel):
     text: str
@@ -27,14 +39,16 @@ class SearchRequest(BaseModel):
     query: str
     k: int = 5
 
-# Convert text → embedding
+
 def get_embedding(text: str):
-    emb = list(model.embed([text]))[0]   # FastEmbed returns a generator
+    emb = list(model.embed([text]))[0]
     return np.array(emb, dtype="float32")
+
 
 @app.get("/")
 async def root():
-    return {"status": "Yes mai chal raha hu"}
+    return {"status": "running"}
+
 
 @app.post("/add")
 def add_vector(data: AddRequest):
@@ -42,6 +56,7 @@ def add_vector(data: AddRequest):
     index.add(np.array([vector]))
     faiss.write_index(index, INDEX_PATH)
     return {"faissId": index.ntotal - 1}
+
 
 @app.post("/search")
 def search_vector(data: SearchRequest):
