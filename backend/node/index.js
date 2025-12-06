@@ -14,7 +14,9 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/journal',journalRoutes);
 
-
+app.use('/', (req, res) => {
+    res.send('hn chal raha hu');
+});
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

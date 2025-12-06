@@ -32,6 +32,10 @@ def get_embedding(text: str):
     emb = list(model.embed([text]))[0]   # FastEmbed returns a generator
     return np.array(emb, dtype="float32")
 
+@app.get("/")
+async def root():
+    return {"status": "Yes mai chal raha hu"}
+
 @app.post("/add")
 def add_vector(data: AddRequest):
     vector = get_embedding(data.text)
