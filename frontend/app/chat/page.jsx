@@ -70,7 +70,7 @@ export default function JournalPage() {
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap shadow
+              className={`max-w-[75%] px-4 py-3 rounded-2xl text-md whitespace-pre-wrap shadow
                 ${
                   msg.role === "user"
                     ? "self-end bg-[#2563eb] text-white rounded-br-sm"
