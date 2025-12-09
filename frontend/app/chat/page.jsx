@@ -1,7 +1,7 @@
 "use client";
 
 import Navbar from "../navbar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function decodeJWT(token) {
   try {
@@ -18,39 +18,47 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState(null);
 
-  // 🔥 1) Load chats from localStorage on mount
+  const messagesEndRef = useRef(null); // 🔥 For auto-scroll
+
+  // 🌀 Auto-scroll when messages update
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, loading]);
+
+  // 🔥 Load chat from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("chathistory");
-    if (saved) {
-      setMessages(JSON.parse(saved));
-    }
+    if (saved) setMessages(JSON.parse(saved));
 
     const token = localStorage.getItem("token");
     const decoded = decodeJWT(token);
     if (decoded?.userId) setUserId(decoded.userId);
   }, []);
 
-  // 🔥 2) Save chats to localStorage whenever they change
+  // 🔥 Save chat to localStorage
   useEffect(() => {
     localStorage.setItem("chathistory", JSON.stringify(messages));
   }, [messages]);
 
-  // ✨ Keep only last 12 messages to avoid long context
-  const getRecentContext = () => {
-    return messages.slice(-12);
+  const clearChat = () => {
+    localStorage.removeItem("chathistory");
+    setMessages([]);
   };
+
+  const getRecentContext = () => messages.slice(-12);
 
   const searchEntries = async () => {
     if (!query.trim() || !userId) return;
 
     const userMessage = { role: "user", content: query };
-    const updated = [...messages, userMessage];
-
-    setMessages(updated);
+    setMessages((prev) => [...prev, userMessage]);
     setQuery("");
 
     try {
       setLoading(true);
+
       const token = localStorage.getItem("token");
 
       const res = await fetch(
@@ -64,7 +72,7 @@ export default function JournalPage() {
           body: JSON.stringify({
             query,
             userId,
-            history: getRecentContext(), // 🔥 sending full context to backend
+            history: getRecentContext()
           }),
         }
       );
@@ -73,7 +81,7 @@ export default function JournalPage() {
 
       const aiMessage = {
         role: "assistant",
-        content: data.answer || "No response received.",
+        content: data.answer || "No response received."
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -85,6 +93,16 @@ export default function JournalPage() {
   return (
     <div className="min-h-screen bg-[#white] flex flex-col text-gray-200">
       <Navbar />
+
+      {/* CLEAR CHAT BUTTON */}
+      <div className="max-w-3xl mx-auto w-full px-4 mt-2 flex justify-end">
+        <button
+          onClick={clearChat}
+          className="px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600"
+        >
+          Clear Chat
+        </button>
+      </div>
 
       {/* CHAT WRAPPER */}
       <div className="flex-1 w-full max-w-3xl mx-auto px-4 py-6 flex flex-col overflow-y-auto">
@@ -109,6 +127,9 @@ export default function JournalPage() {
           {loading && (
             <p className="self-start text-gray-400 text-sm">Thinking…</p>
           )}
+
+          {/* AUTO-SCROLL ANCHOR */}
+          <div ref={messagesEndRef}></div>
         </div>
 
         {/* INPUT BAR */}

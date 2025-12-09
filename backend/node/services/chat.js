@@ -38,7 +38,7 @@ Just reflect insightfully as if you already know them.
 
       // 2️⃣ Feed journal entries as internal system memory
       {
-        role: "system",
+        role: "assistant",
         content: `Relevant journal entries:\n${memoryText}`
       },
 
