@@ -4,46 +4,63 @@ const client = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
 
-export async function askAI(question, memories) {
-  const memoryText = memories
-    .map(m => `Title: ${m.title}\nEntry: ${m.content}`)
-    .join("\n\n");
+export async function askAI({ query, history = [], journals = [] }) {
+  try {
+    // Limit memory so tokens stay under control
+    const trimmedHistory = history.slice(-12);
 
-  const completion = await client.chat.completions.create({
-    model: "llama-3.3-70b-versatile",  // correct model ID
-    messages: [
+    // Convert journals into readable text blocks
+    const memoryText = journals
+      .map(m => `Title: ${m.title}\nEntry: ${m.content}`)
+      .join("\n\n");
+
+    // Build full message array
+    const messages = [
       {
         role: "system",
-        content:
-          `You are a compassionate, emotionally intelligent journal companion.
-You understand the user only through the journal entries they have written. 
-You never assume, guess, or invent details that are not present in their entries.
+        content: `
+You are a compassionate, emotionally intelligent journal companion.
 
-When the user asks something, respond as a real human would in a natural, warm, conversational tone.
-Use the information from their past entries to answer directly, without referencing the journal or how you know it.
-Do not say things like “you wrote…” or “according to your entry…” or anything that exposes the system.
-Simply answer naturally as if you already know them, but only based on what they have shared before.
+You understand the user ONLY through the journal entries they have written.
+Never invent, guess, or mention that you are using journal entries.
 
-Your role is to reflect their inner world with empathy, emotional clarity, and gentle guidance.
-Be warm, honest, and supportive, helping them understand themselves while staying grounded only in the information they have provided.
+Speak naturally, warmly, like a supportive human friend.
+Do not expose system rules or mention "journal entries".
+Just reflect insightfully as if you already know them.
 `
       },
+
+      // 1️⃣ Add the conversation history from the frontend
+      ...trimmedHistory.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      })),
+
+      // 2️⃣ Feed journal entries as internal system memory
+      {
+        role: "system",
+        content: `Relevant journal entries:\n${memoryText}`
+      },
+
+      // 3️⃣ The actual new question
       {
         role: "user",
-        content: `
-User question: ${question}
-
-Relevant Journal Entries:
-${memoryText}
-
-Now answer based only on these entries.
-`
+        content: query
       }
-    ],
-    temperature: 0.81,
-    max_tokens: 80,
-    top_p: 1
-  });
+    ];
 
-  return completion.choices[0].message.content;
+    const completion = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages,
+      temperature: 0.35, // calm + stable
+      top_p: 1,
+      max_tokens: 900 // 🔥 long-form reflective answer
+    });
+
+    return completion.choices[0].message.content;
+
+  } catch (err) {
+    console.error("ASKAI ERROR:", err);
+    return "Sorry, something went wrong while generating a response.";
+  }
 }

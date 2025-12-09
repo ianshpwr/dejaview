@@ -18,31 +18,56 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState(null);
 
+  // 🔥 1) Load chats from localStorage on mount
   useEffect(() => {
+    const saved = localStorage.getItem("chathistory");
+    if (saved) {
+      setMessages(JSON.parse(saved));
+    }
+
     const token = localStorage.getItem("token");
     const decoded = decodeJWT(token);
     if (decoded?.userId) setUserId(decoded.userId);
   }, []);
 
+  // 🔥 2) Save chats to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("chathistory", JSON.stringify(messages));
+  }, [messages]);
+
+  // ✨ Keep only last 12 messages to avoid long context
+  const getRecentContext = () => {
+    return messages.slice(-12);
+  };
+
   const searchEntries = async () => {
     if (!query.trim() || !userId) return;
 
     const userMessage = { role: "user", content: query };
-    setMessages((prev) => [...prev, userMessage]);  // ⬅️ append, not prepend
+    const updated = [...messages, userMessage];
+
+    setMessages(updated);
+    setQuery("");
 
     try {
       setLoading(true);
-
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/journal/entries/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ query, userId }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/journal/entries/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            query,
+            userId,
+            history: getRecentContext(), // 🔥 sending full context to backend
+          }),
+        }
+      );
 
       const data = await res.json();
 
@@ -50,11 +75,10 @@ export default function JournalPage() {
         role: "assistant",
         content: data.answer || "No response received.",
       };
-      setMessages((prev) => [...prev, aiMessage]);
 
+      setMessages((prev) => [...prev, aiMessage]);
     } finally {
       setLoading(false);
-      setQuery("");
     }
   };
 
@@ -79,12 +103,6 @@ export default function JournalPage() {
               `}
             >
               <p>{msg.content}</p>
-
-              {msg.memories && (
-                <div className="mt-3 space-y-3">
-
-                </div>
-              )}
             </div>
           ))}
 

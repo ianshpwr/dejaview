@@ -90,16 +90,14 @@ router.delete('/entries/:id', async (req,res)=>{
 export default router;
 
 router.post("/entries/chat", async (req, res) => {
-    const { query, userId } = req.body;
+    const { query, userId, history = [] } = req.body;
 
     try {
-        // 1️⃣ Get FAISS results
+        // 1️⃣ Get FAISS search results
         const raw = await searchFaiss(query, 5);
-
-        // 2️⃣ Convert into just an array of faissIds (integers)
         const ids = raw.map(r => r.id);
 
-        // 3️⃣ Fetch matching journal entries
+        // 2️⃣ Fetch matching journal entries
         const journals = await prisma.journal.findMany({
             where: {
                 userId: Number(userId),
@@ -107,8 +105,12 @@ router.post("/entries/chat", async (req, res) => {
             }
         });
 
-        // 4️⃣ Ask the AI
-        const answer = await askAI(query, journals);
+        // 3️⃣ Build dynamic prompt using history + journals
+        const answer = await askAI({
+            query,
+            history,
+            journals
+        });
 
         res.json({
             answer,
@@ -117,6 +119,10 @@ router.post("/entries/chat", async (req, res) => {
 
     } catch (err) {
         console.error("CHAT ERROR:", err);
-        res.status(500).json({ error: "Chat failed", details: err.message });
+        res.status(500).json({
+            error: "Chat failed",
+            details: err.message
+        });
     }
 });
+
