@@ -1,143 +1,171 @@
-# Dejaview 🔍
+Dejaview AI-Powered Semantic Journal
 
-An AI-powered Chrome extension that makes your browser history searchable with natural language. Find pages you've visited using semantic search - describe what you're looking for, and Dejaview will find it.
+Dejaview is an AI-powered personal journaling application that allows users to write journals and converse with their past thoughts using natural language.
+It leverages semantic search, vector similarity, and large language models to transform personal journals into an interactive, context-aware experience.
 
-## Features
+Built using a Retrieval-Augmented Generation (RAG) architecture, Dejaview retrieves relevant journal entries using FAISS and generates grounded responses using a large language model.
 
-- **Semantic Search**: Search your browsing history using natural language queries
-- **Full-Page Content Indexing**: Automatically extracts and indexes the main content of pages you visit
-- **Local Embeddings**: Uses TensorFlow.js with Universal Sentence Encoder for privacy-preserving local embeddings
-- **Smart Filtering**: Automatically excludes login pages, error pages, and other non-content pages
-- **Domain Grouping**: Search results are intelligently grouped by domain
-- **Keyboard Shortcuts**: Quick access with `Ctrl+Shift+Y` (Windows/Linux) or `Cmd+Shift+Y` (Mac)
+✨ Features
 
-## Architecture
+Multi-User Authentication
+Secure user authentication allowing each user to maintain a private, isolated journal space.
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Content Script │────▶│ Background Worker│────▶│   IndexedDB     │
-│  (Readability)  │     │  (Embeddings)    │     │  (Storage)      │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-                               │
-                               ▼
-                        ┌──────────────┐
-                        │  Popup UI    │
-                        │  (Search)    │
-                        └──────────────┘
-```
+Personal Journaling
+Write, store, and manage journal entries securely in PostgreSQL.
 
-## Installation
+Semantic Journal Search
+Retrieve relevant journal entries using vector similarity instead of keyword matching.
 
-### Development Setup
+Conversational AI Interface
+Talk to your journal using natural language queries and receive responses grounded in your own entries.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/dejaview.git
-   cd dejaview
-   ```
+RAG-Based Architecture
+Uses FAISS for vector retrieval and LLaMA-3.3-70B-Versatile for response generation.
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Context-Aware Conversations
+Maintains chat history to provide coherent follow-up responses.
 
-3. Build the extension:
-   ```bash
-   npm run build
-   ```
+Dockerized Backend Services
+Containerized FastAPI services for reproducible ML inference and reliable deployment.
 
-4. Load in Chrome:
-   - Navigate to `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked"
-   - Select the `dist` folder
+🧠 System Architecture
+┌──────────────┐
+│  Next.js UI  │
+│ (Auth + UI)  │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ Node.js API  │──────────▶ PostgreSQL
+│ (Auth + CRUD)             (User Journals)
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────────┐
+│ FastAPI Vector API   │
+│ (Embeddings + FAISS) │
+└──────┬───────────────┘
+       │
+       ▼
+┌──────────────┐
+│  LLaMA 3.3   │
+│  Generation  │
+└──────────────┘
 
-### Development Commands
+🔍 How It Works
+1. Authentication & Journal Storage
 
-```bash
-npm run dev      # Watch mode for development
-npm run build    # Production build
-npm run preview  # Preview production build
-```
+Users authenticate via the Next.js + Node.js backend.
 
-## How It Works
+Journal entries are stored securely in PostgreSQL, scoped per user.
 
-1. **Content Extraction**: When you visit a page, the content script uses [Readability.js](https://github.com/mozilla/readability) to extract the main content, filtering out navigation, ads, and boilerplate.
+2. Embedding & Vector Indexing
 
-2. **Smart Filtering**: Pages are filtered to exclude:
-   - Login/authentication pages
-   - Error pages (404, 500, etc.)
-   - Chrome internal pages
-   - Pages with insufficient content
+Journal entries are embedded using BGE (BAAI/bge-small-en-v1.5).
 
-3. **Embedding Generation**: The extracted text is converted to a 512-dimensional vector embedding using the Universal Sentence Encoder running locally in the browser.
+Vectors are stored and indexed using FAISS with disk persistence.
 
-4. **Storage**: Page metadata and embeddings are stored in IndexedDB with automatic cleanup of entries older than 30 days.
+3. Semantic Retrieval
 
-5. **Search**: When you search, your query is embedded and compared against stored page embeddings using cosine similarity, returning the most semantically relevant results.
+User queries are embedded and searched against FAISS to retrieve the top-k most relevant journal entries.
 
-## Tech Stack
+4. Response Generation (RAG)
 
-### Frontend (Next.js Web App)
-- **Framework**: Next.js with React 18
-- **Language**: JavaScript (ES6+) with JSX
-- **UI Components**: [Radix UI](https://www.radix-ui.com/) primitives (Dialog, Scroll Area, Slot)
-- **Styling**: Tailwind CSS 4 with tailwind-merge & clsx for class utilities
-- **Icons**: Lucide React
+Retrieved journal entries are injected as context.
 
-### Backend (Python)
-- **Framework**: FastAPI with Uvicorn ASGI server
-- **Vector Search**: FAISS (Facebook AI Similarity Search)
-- **Embeddings**: Sentence Transformers (all-MiniLM-L6-v2 model)
-- **ML Runtime**: PyTorch (torch)
-- **Scientific Computing**: NumPy
+LLaMA-3.3-70B-Versatile generates responses grounded in user-owned data.
 
-### Infrastructure
-- **Containerization**: Docker & Docker Compose
-- **Package Managers**: npm (frontend), pip (backend)
+5. Conversational Memory
 
-## Project Structure
+Recent chat history is preserved to maintain conversational continuity.
 
-```
+🛠️ Tech Stack
+Frontend
+
+Framework: Next.js (React 18)
+
+Language: JavaScript / JSX
+
+Styling: Tailwind CSS
+
+UI Components: Radix UI
+
+Icons: Lucide React
+
+Backend
+
+Auth & Journals API: Node.js
+
+Vector Search API: FastAPI
+
+Embeddings: fastembed (BGE Small EN v1.5)
+
+Vector Database: FAISS (local persistent index)
+
+Database: PostgreSQL
+
+LLM: LLaMA-3.3-70B-Versatile
+
+Infrastructure
+
+Containerization: Docker
+
+Deployment: Dockerized services
+
+Vector Storage: FAISS (local, disk-persisted)
+
+📁 Project Structure
 dejaview/
 ├── frontend/
 │   ├── app/
-│   │   ├── layout.js         # Root layout
-│   │   ├── page.js           # Home page
-│   │   └── components/       # UI components
-│   ├── public/               # Static assets
-│   ├── package.json          # Frontend dependencies
-│   └── tsconfig.json         # TypeScript config (for IDE support)
+│   ├── components/
+│   └── auth/
 ├── backend/
-│   └── faiss/
-│       ├── main.py           # FastAPI server entry
-│       ├── searchfaiss.py    # FAISS search logic
-│       ├── requirements.txt  # Python dependencies
-│       └── Dockerfile        # Backend container config
-├── docker-compose.yml        # Multi-container orchestration
+│   ├── journal-api/        # Node.js (Auth + Journals)
+│   └── vector-api/
+│       ├── main.py         # FastAPI FAISS service
+│       ├── requirements.txt
+│       └── index.bin       # Persistent FAISS index
+├── docker-compose.yml
 └── README.md
-```
 
-## Privacy
+🐳 Docker & Deployment
 
-Dejaview is designed with privacy in mind:
+Backend services are fully Dockerized.
 
-- **100% Local Processing**: All embeddings are generated locally using TensorFlow.js
-- **No External Servers**: Your browsing data never leaves your browser
-- **Local Storage Only**: All data is stored in your browser's IndexedDB
-- **Automatic Cleanup**: Old entries are automatically removed after 30 days
+Docker ensures:
 
-## Permissions
+Environment consistency
 
-- `history`: Read browser history metadata
-- `storage`: Store extension settings
-- `tabs`: Access current tab information
-- `scripting`: Inject content scripts for page extraction
+Reproducible ML inference
 
-## License
+Reliable deployment on free-tier infrastructure
 
-MIT
+Simplifies dependency management for FAISS and embedding models.
 
-## Contributing
+🔐 Privacy & Data Isolation
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Each user’s journals are logically isolated.
+
+No third-party analytics or tracking.
+
+Journal content is only used to generate user-specific responses.
+
+📜 License
+
+MIT License
+
+🤝 Contributing
+
+Contributions are welcome.
+Feel free to open an issue or submit a pull request.
+
+🚀 Future Improvements
+
+Cloud-hosted vector database (optional scaling)
+
+Advanced journal analytics
+
+Emotion-aware reflections
+
+Multi-device sync
