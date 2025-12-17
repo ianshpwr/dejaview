@@ -78,14 +78,11 @@ npm run preview  # Preview production build
 
 ## Tech Stack
 
-### Frontend (Chrome Extension)
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite 6 with [@crxjs/vite-plugin](https://crxjs.dev/) for Chrome extension bundling
+### Frontend (Next.js Web App)
+- **Framework**: Next.js with React 18
+- **Language**: JavaScript (ES6+) with JSX
 - **UI Components**: [Radix UI](https://www.radix-ui.com/) primitives (Dialog, Scroll Area, Slot)
 - **Styling**: Tailwind CSS 4 with tailwind-merge & clsx for class utilities
-- **ML/AI**: TensorFlow.js (@tensorflow/tfjs) + Universal Sentence Encoder (@tensorflow-models/universal-sentence-encoder)
-- **Content Extraction**: [Mozilla Readability](https://github.com/mozilla/readability) for article parsing
-- **Storage**: IndexedDB via [idb](https://github.com/jakearchibald/idb) library
 - **Icons**: Lucide React
 
 ### Backend (Python)
@@ -103,35 +100,22 @@ npm run preview  # Preview production build
 
 ```
 dejaview/
-├── src/
-│   ├── background/
-│   │   ├── index.ts          # Service worker entry
-│   │   ├── embeddings.ts     # TensorFlow.js embedding generation
-│   │   ├── storage.ts        # IndexedDB operations
-│   │   └── search.ts         # Semantic search logic
-│   ├── content/
-│   │   ├── index.ts          # Content script entry
-│   │   ├── extractor.ts      # Page content extraction
-│   │   └── pageFilter.ts     # URL/content filtering
-│   ├── popup/
-│   │   ├── App.tsx           # Popup React app
-│   │   ├── main.tsx          # Popup entry point
+├── frontend/
+│   ├── app/
+│   │   ├── layout.js         # Root layout
+│   │   ├── page.js           # Home page
 │   │   └── components/       # UI components
-│   ├── lib/
-│   │   └── utils.ts          # Shared utilities
-│   └── types/
-│       └── messages.ts       # TypeScript message types
+│   ├── public/               # Static assets
+│   ├── package.json          # Frontend dependencies
+│   └── tsconfig.json         # TypeScript config (for IDE support)
 ├── backend/
 │   └── faiss/
 │       ├── main.py           # FastAPI server entry
 │       ├── searchfaiss.py    # FAISS search logic
 │       ├── requirements.txt  # Python dependencies
 │       └── Dockerfile        # Backend container config
-├── public/
-│   └── icons/                # Extension icons
-├── manifest.json             # Chrome extension manifest
 ├── docker-compose.yml        # Multi-container orchestration
-└── vite.config.ts            # Vite configuration
+└── README.md
 ```
 
 ## Privacy
