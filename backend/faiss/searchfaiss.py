@@ -12,7 +12,6 @@ import json
 def get_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
-
 # -----------------------
 # 2. Load index ONLY once (convert to float16 → 50% RAM reduction)
 # -----------------------
