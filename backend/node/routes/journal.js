@@ -87,7 +87,7 @@ router.delete('/entries/:id', async (req,res)=>{
         res.status(500).json({ message: 'Error deleting journal entry' });
     }
 })
-export default router;
+
 
 router.post("/entries/chat", async (req, res) => {
     const { query, userId, history = [] } = req.body;
@@ -126,3 +126,4 @@ router.post("/entries/chat", async (req, res) => {
     }
 });
 
+export default router;
