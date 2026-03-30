@@ -136,7 +136,7 @@ export default function InsightsPage() {
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="bg-surface border border-pink-light/30 rounded-[20px] p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-dark mb-4 font-sans">Mood over the last 30 days</h3>
-              <div className="w-full h-48">
+              <div style={{ width: '100%', height: '300px', minHeight: '300px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
                     <defs>

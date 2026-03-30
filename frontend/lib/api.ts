@@ -73,22 +73,24 @@ export async function getEntries(userId: number): Promise<JournalEntry[]> {
 export async function createEntry(
   title: string,
   content: string,
-  userId: number
+  userId: number,
+  mood = 'calm'
 ): Promise<JournalEntry> {
   return request<JournalEntry>('/journal/entries', {
     method: 'POST',
-    body: JSON.stringify({ title, content, userId }),
+    body: JSON.stringify({ title, content, userId, mood }),
   });
 }
 
 export async function updateEntry(
   id: number,
   title: string,
-  content: string
+  content: string,
+  mood?: string
 ): Promise<JournalEntry> {
   return request<JournalEntry>(`/journal/entries/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ title, content }),
+    body: JSON.stringify({ title, content, ...(mood ? { mood } : {}) }),
   });
 }
 

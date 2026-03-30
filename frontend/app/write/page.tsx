@@ -15,6 +15,16 @@ const CYCLING_PROMPTS = [
   'What do you want to remember about right now?',
 ];
 
+const MOODS = [
+  { value: 'happy',     emoji: '😊', label: 'Happy' },
+  { value: 'calm',      emoji: '😌', label: 'Calm' },
+  { value: 'sad',       emoji: '😢', label: 'Sad' },
+  { value: 'anxious',   emoji: '😰', label: 'Anxious' },
+  { value: 'angry',     emoji: '😤', label: 'Angry' },
+  { value: 'grateful',  emoji: '🙏', label: 'Grateful' },
+  { value: 'energized', emoji: '⚡', label: 'Energized' },
+];
+
 type SaveStatus = 'idle' | 'saving' | 'saved';
 
 function WritePageContent() {
@@ -24,6 +34,7 @@ function WritePageContent() {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [selectedMood, setSelectedMood] = useState('calm');
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [isFocused, setIsFocused] = useState(false);
   const [promptIndex, setPromptIndex] = useState(0);
@@ -49,7 +60,11 @@ function WritePageContent() {
     if (!user) return;
     getEntries(user.id).then((all) => {
       const e = all.find((x) => x.id === Number(entryId));
-      if (e) { setTitle(e.title); setContent(e.content); }
+      if (e) {
+        setTitle(e.title);
+        setContent(e.content);
+        if (e.mood) setSelectedMood(e.mood);
+      }
     }).catch(() => {});
   }, [entryId]);
 
@@ -76,7 +91,7 @@ function WritePageContent() {
     // Auto-save debounce 1500ms
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus('saving');
-    saveTimer.current = setTimeout(() => doSave(title, e.target.value), 1500);
+    saveTimer.current = setTimeout(() => doSave(title, e.target.value, selectedMood), 1500);
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,7 +99,7 @@ function WritePageContent() {
     setIsDirty(true);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus('saving');
-    saveTimer.current = setTimeout(() => doSave(e.target.value, content), 1500);
+    saveTimer.current = setTimeout(() => doSave(e.target.value, content, selectedMood), 1500);
   };
 
   const handleMouseMove = useCallback(() => {
@@ -94,15 +109,15 @@ function WritePageContent() {
     }
   }, [isFocused]);
 
-  async function doSave(t: string, c: string) {
+  async function doSave(t: string, c: string, mood = selectedMood) {
     if (!c.trim()) { setSaveStatus('idle'); return; }
     const user = getUser();
     if (!user) return;
     try {
       if (savedId) {
-        await updateEntry(savedId, t, c);
+        await updateEntry(savedId, t, c, mood);
       } else {
-        const entry = await createEntry(t, c, user.id);
+        const entry = await createEntry(t, c, user.id, mood);
         setSavedId(entry.id);
       }
       setSaveStatus('saved');
@@ -186,8 +201,35 @@ function WritePageContent() {
           placeholder="Give this entry a title..."
           value={title}
           onChange={handleTitleChange}
-          className="w-full bg-transparent border-none outline-none text-[32px] text-dark placeholder:text-muted/50 mb-8 focus:ring-0 font-heading"
+          className="w-full bg-transparent border-none outline-none text-[32px] text-dark placeholder:text-muted/50 mb-6 focus:ring-0 font-heading"
         />
+
+        {/* Mood picker */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-8 scrollbar-none">
+          {MOODS.map((m) => (
+            <button
+              key={m.value}
+              type="button"
+              onClick={() => setSelectedMood(m.value)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '100px',
+                border: `1px solid ${selectedMood === m.value ? '#ff5e6c' : '#ffaaab'}`,
+                background: selectedMood === m.value ? '#ff5e6c' : '#fffbec',
+                color: selectedMood === m.value ? 'white' : '#a89880',
+                fontFamily: 'var(--font-dm-sans)',
+                fontSize: '13px',
+                fontWeight: selectedMood === m.value ? 500 : 400,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                transition: 'all 150ms',
+                flexShrink: 0,
+              }}
+            >
+              {m.emoji} {m.label}
+            </button>
+          ))}
+        </div>
 
         <div className="relative min-h-[60vh]">
           {!content && (

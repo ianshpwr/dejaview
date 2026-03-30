@@ -21,60 +21,55 @@ router.get("/debug-faiss", (req, res) => {
 router.get('/entries/:userId', async (req, res) => {
     try {
         const entries = await prisma.journal.findMany({
-    where: {
-        userId: Number(req.params.userId),
-    }
-});
+            where: { userId: Number(req.params.userId) },
+            orderBy: { createdAt: 'desc' },
+        });
         res.status(200).json(entries);
     } catch (err) {
-        res.status(500).json({ message: 'Error fetching journal entries',
-            issue: err
-         });
+        console.error('GET /entries error:', err);
+        res.status(500).json({ error: 'Failed to fetch entries' });
     }
 });
 
 router.post('/entries', async (req, res) => {
-    const { title, content, userId } = req.body;
+    const { title, content, userId, mood } = req.body;
 
     try {
-        // 1️⃣ Add to FAISS (generate embedding + store vector)
         const faissId = await addToFaiss(content);
-
-        // 2️⃣ Save journal in database with FAISS ID
         const newEntry = await prisma.journal.create({
             data: {
-                title: title,
+                title: title || '',
                 content: content,
                 userId: Number(userId),
-                faissId: faissId,   // <-- SAVE VECTOR ID
+                faissId: faissId,
+                mood: mood || 'calm',
             },
         });
-
-        // 3️⃣ Return response
         res.status(201).json(newEntry);
-
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error creating journal entry' });
-    }   
+    }
 });
 
-router.patch('/entries/:id', async (req,res)=>{
-    const {title,content} = req.body;
+router.patch('/entries/:id', async (req, res) => {
+    const { title, content, mood } = req.body;
     const entryId = req.params.id;
-    try{
+    try {
         const updatedEntry = await prisma.journal.update({
-            where : {id : Number(entryId)},
-            data : {
-                title : title,
-                content : content
-            }
+            where: { id: Number(entryId) },
+            data: {
+                title: title,
+                content: content,
+                ...(mood ? { mood } : {}),
+            },
         });
         res.status(200).json(updatedEntry);
     } catch (err) {
         res.status(500).json({ message: 'Error updating journal entry' });
     }
-})
+});
+
 
 router.delete('/entries/:id', async (req,res)=>{
     const entryId = req.params.id;
