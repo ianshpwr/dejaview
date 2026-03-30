@@ -44,11 +44,12 @@ export default function ChatPage() {
     getEntries(user.id).then(setEntries).catch(() => {});
   }, [mounted, router]);
 
-  if (!mounted) return null;
-
+  // Scroll to bottom when messages update — must be before any early return
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isThinking]);
+
+  if (!mounted) return null;
 
   const handleSend = async (text: string = input) => {
     if (!text.trim()) return;
