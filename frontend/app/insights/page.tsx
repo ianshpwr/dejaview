@@ -163,13 +163,13 @@ export default function InsightsPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen overflow-hidden bg-beige">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-beige">
       <Sidebar />
 
-      <div className="flex-1 overflow-y-auto p-6 sm:p-10 pb-24 md:pb-10 space-y-8">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-10 pb-24 md:pb-10 space-y-6 md:space-y-8 w-full max-w-full">
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-[28px] text-dark mb-1 font-heading">Your story, in numbers</h1>
-          <p className="text-[15px] text-muted font-sans">Patterns and reflections from your journal</p>
+          <h1 className="text-[24px] md:text-[28px] text-dark mb-1 font-heading">Your story, in numbers</h1>
+          <p className="text-[14px] md:text-[15px] text-muted font-sans">Patterns and reflections from your journal</p>
         </motion.div>
 
         {/* Stat cards */}
@@ -191,8 +191,8 @@ export default function InsightsPage() {
           })}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6" style={{ minWidth: 0 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-full">
+          <div className="space-y-6 w-full max-w-full overflow-hidden">
             {/* Mood chart */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="bg-surface border border-pink-light/30 rounded-[20px] p-5 shadow-sm">
@@ -237,7 +237,7 @@ export default function InsightsPage() {
             </motion.div>
           </div>
 
-          <div className="space-y-6" style={{ minWidth: 0 }}>
+          <div className="space-y-6 w-full max-w-full overflow-hidden">
             {/* Weekly AI reflection */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
               className="bg-surface border-l-[4px] border-coral border-y border-y-pink-light/30 border-r border-r-pink-light/30 rounded-[16px] p-5 shadow-sm">

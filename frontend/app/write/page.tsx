@@ -157,12 +157,12 @@ function WritePageContent() {
   const uiOpacity = isFocused && content.length > 0 ? 0.15 : 1;
 
   return (
-    <div className="min-h-screen bg-beige flex flex-col" onMouseMove={handleMouseMove}>
+    <div className="min-h-[100dvh] w-full bg-beige flex flex-col overflow-x-hidden" onMouseMove={handleMouseMove}>
       {/* Top bar */}
       <motion.div
         animate={{ opacity: uiOpacity }}
         transition={{ duration: 0.5 }}
-        className="flex items-center justify-between px-8 py-4 border-b border-pink-light/30 flex-shrink-0"
+        className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4 border-b border-pink-light/30 flex-shrink-0 flex-wrap gap-4"
         style={{ pointerEvents: uiOpacity < 0.4 ? 'none' : 'auto' }}
       >
         <button
@@ -173,7 +173,7 @@ function WritePageContent() {
           <span className="text-sm font-sans">Back</span>
         </button>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6 flex-wrap justify-end">
           <span className="font-sans text-[12px] text-muted">
             {wordCount} {wordCount === 1 ? 'word' : 'words'}
           </span>
@@ -208,17 +208,17 @@ function WritePageContent() {
       </motion.div>
 
       {/* Editor */}
-      <div className="flex-1 max-w-2xl mx-auto w-full px-6 py-12">
+      <div className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12 flex flex-col">
         <input
           type="text"
           placeholder="Give this entry a title..."
           value={title}
           onChange={handleTitleChange}
-          className="w-full bg-transparent border-none outline-none text-[32px] text-dark placeholder:text-muted/50 mb-6 focus:ring-0 font-heading"
+          className="w-full bg-transparent border-none outline-none text-[24px] sm:text-[32px] leading-tight text-dark placeholder:text-muted/50 mb-4 sm:mb-6 focus:ring-0 font-heading"
         />
 
         {/* Mood picker */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-8 scrollbar-none">
+        <div className="flex gap-2 w-full max-w-full overflow-x-auto pb-2 mb-6 sm:mb-8 scrollbar-none">
           {MOODS.map((m) => (
             <button
               key={m.value}

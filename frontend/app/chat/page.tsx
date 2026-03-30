@@ -158,7 +158,7 @@ export default function ChatPage() {
   const isInitialState = messages.length === 0;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-beige">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-beige">
       <Sidebar />
 
       <div className="flex-1 flex overflow-hidden">
@@ -265,7 +265,7 @@ export default function ChatPage() {
         </div>
 
         {/* Right: Chat */}
-        <div className="flex-1 flex flex-col overflow-hidden relative">
+        <div className="flex-1 flex flex-col overflow-x-hidden relative w-full max-w-full">
           {/* Mobile Clear Button (visible on small screens) */}
           {messages.length > 0 && (
             <div className="md:hidden absolute top-4 right-4 z-10">
@@ -289,13 +289,13 @@ export default function ChatPage() {
           )}
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-6 pb-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-6 pb-4 w-full">
             {isInitialState && (
               <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto min-h-[50vh]">
                 <div className="w-12 h-12 rounded-full bg-pink-light/20 flex items-center justify-center mb-4">
                   <Sparkles size={24} className="text-coral" />
                 </div>
-                <h2 className="text-[24px] text-dark mb-2 font-heading">
+                <h2 className="text-[20px] md:text-[24px] text-dark mb-2 font-heading">
                   Chat with your journal
                 </h2>
                 <p className="text-[15px] text-muted font-serif">
@@ -325,7 +325,7 @@ export default function ChatPage() {
               >
                 <div
                   className={[
-                    'max-w-[75%] px-5 py-3.5 rounded-[20px] text-[15px] leading-relaxed font-sans',
+                    'max-w-[85%] md:max-w-[75%] px-4 sm:px-5 py-3 sm:py-3.5 rounded-[20px] text-[15px] leading-relaxed font-sans',
                     msg.role === 'user'
                       ? 'bg-coral text-white rounded-br-[6px]'
                       : 'bg-surface border border-pink-light/40 text-dark rounded-bl-[6px] font-serif whitespace-pre-wrap',
@@ -359,7 +359,7 @@ export default function ChatPage() {
           </div>
 
           {/* Input */}
-          <div className="p-4 sm:p-6 bg-gradient-to-t from-beige to-transparent flex-shrink-0">
+          <div className="p-3 sm:p-6 w-full bg-gradient-to-t from-beige to-transparent flex-shrink-0">
             <div className="max-w-3xl mx-auto flex items-center gap-3 bg-surface border border-pink-light rounded-[100px] px-5 py-3 shadow-sm focus-within:ring-4 focus-within:ring-coral/15 focus-within:border-coral transition-all">
               <input
                 ref={inputRef}
@@ -368,7 +368,7 @@ export default function ChatPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about your memories, patterns, feelings..."
-                className="flex-1 bg-transparent border-none outline-none text-[15px] text-dark placeholder:text-muted/60 focus:ring-0 font-sans"
+                className="flex-1 bg-transparent border-none outline-none text-[15px] text-dark placeholder:text-muted/60 focus:ring-0 font-sans w-full"
               />
               <motion.button
                 onClick={() => handleSend(input)}

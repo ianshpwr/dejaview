@@ -70,13 +70,13 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex overflow-hidden bg-beige">
+    <div className="min-h-[100dvh] flex flex-col lg:flex-row overflow-x-hidden bg-beige">
       {/* Left: Form */}
       <motion.div
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="w-full lg:w-[500px] flex flex-col justify-center px-8 sm:px-12 py-12 z-10"
+        className="w-full lg:w-[500px] flex flex-col justify-center px-6 sm:px-12 py-8 sm:py-12 z-10"
       >
         {/* Logo */}
         <div className="flex items-center gap-3 mb-16">
@@ -88,9 +88,9 @@ export default function AuthPage() {
           </span>
         </div>
 
-        <div className="mb-10">
+        <div className="mb-8 sm:mb-10">
           <h1
-            className="text-[42px] sm:text-[52px] leading-[1.1] text-dark mb-4 font-heading"
+            className="text-[36px] sm:text-[42px] lg:text-[52px] leading-[1.1] text-dark mb-4 font-heading tracking-tight"
           >
             Your thoughts,<br />remembered.
           </h1>

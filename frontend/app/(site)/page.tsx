@@ -82,20 +82,20 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-beige">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-beige">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-x-hidden w-full max-w-full">
         {/* Top bar */}
-        <div className="px-6 sm:px-10 pt-8 pb-6 flex-shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+        <div className="px-4 sm:px-10 pt-6 sm:pt-8 pb-4 sm:pb-6 flex-shrink-0 w-full max-w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-6 sm:mb-8">
             <div>
               {/* Mobile logo */}
               <div className="flex items-center gap-2 mb-2 md:hidden">
                 <Feather size={16} className="text-coral" />
                 <span className="font-heading text-lg font-medium text-dark">Dejaview</span>
               </div>
-              <h1 className="text-[28px] text-dark mb-1 font-heading">
+              <h1 className="text-[24px] md:text-[28px] text-dark mb-1 font-heading">
                 {greeting}{user?.name ? `, ${user.name}` : ''} ☀️
               </h1>
               <p className="text-[15px] text-muted font-serif">
@@ -162,42 +162,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 sm:px-10 pb-24 md:pb-10">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-10 pb-24 md:pb-10 w-full max-w-full">
           {error && (
             <p className="text-coral text-sm font-sans mb-4">{error}</p>
           )}
 
           {/* Summary panel */}
           {showSummary && (
-            <div style={{
-              background: '#fffbec',
-              border: '1px solid #ffaaab',
-              borderRadius: '20px',
-              padding: '28px 32px',
-              marginBottom: '32px',
-              position: 'relative',
-            }}>
+            <div className="bg-[#fffbec] border border-[#ffaaab] rounded-[20px] p-5 sm:p-7 mb-8 relative w-full max-w-full">
               <button
                 onClick={() => setShowSummary(false)}
-                style={{
-                  position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#a89880',
-                  fontSize: '20px',
-                }}
+                className="absolute top-4 right-4 bg-transparent border-none cursor-pointer text-[#a89880] text-[20px] p-2"
               >
                 ×
               </button>
-              <h3 style={{
-                fontFamily: 'var(--font-playfair)',
-                fontSize: '20px',
-                color: '#1f1a14',
-                marginBottom: '16px',
-              }}>
+              <h3 className="font-heading text-[18px] sm:text-[20px] text-[#1f1a14] mb-4">
                 ✨ Your Journal Story
               </h3>
               {summaryLoading ? (
