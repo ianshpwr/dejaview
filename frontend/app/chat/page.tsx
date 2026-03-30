@@ -32,12 +32,19 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
+    if (!mounted) return;
     if (!getToken()) { router.replace('/auth'); return; }
     const user = getUser();
     if (!user) { router.replace('/auth'); return; }
     getEntries(user.id).then(setEntries).catch(() => {});
-  }, [router]);
+  }, [mounted, router]);
+
+  if (!mounted) return null;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

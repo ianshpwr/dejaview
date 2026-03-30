@@ -18,12 +18,19 @@ export default function SettingsPage() {
   const [nameSaving, setNameSaving] = useState(false);
   const [toast, setToast] = useState('');
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
+    if (!mounted) return;
     if (!getToken()) { router.replace('/auth'); return; }
     const u = getUser();
-    setUser(u);
+    setUser(u as { id: number; name: string; email: string });
     setDisplayName(u?.name ?? '');
-  }, [router]);
+  }, [mounted, router]);
+
+  if (!mounted) return null;
 
   function showToast(msg: string) {
     setToast(msg);

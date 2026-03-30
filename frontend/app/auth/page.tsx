@@ -20,9 +20,17 @@ export default function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    if (getToken()) router.replace('/');
-  }, [router]);
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && getToken()) router.replace('/');
+  }, [mounted, router]);
+
+  if (!mounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

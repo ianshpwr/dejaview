@@ -51,16 +51,24 @@ function WritePageContent() {
 
   const wordCount = computeWordCount(content);
 
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<{ id: number; name: string } | null>(null);
+
+  useEffect(() => setMounted(true), []);
+
   // Auth guard
   useEffect(() => {
-    if (!getToken()) router.replace('/auth');
-  }, [router]);
+    if (!mounted) return;
+    if (!getToken()) { router.replace('/auth'); return; }
+    const u = getUser();
+    if (!u) { router.replace('/auth'); return; }
+    setUser(u as { id: number; name: string });
+  }, [mounted, router]);
 
   // Load entry if editing
   useEffect(() => {
+    if (!mounted || !user) return;
     if (!entryId) return;
-    const user = getUser();
-    if (!user) return;
     getEntries(user.id).then((all) => {
       const e = all.find((x) => x.id === Number(entryId));
       if (e) {
@@ -69,7 +77,7 @@ function WritePageContent() {
         if (e.mood) setSelectedMood(e.mood);
       }
     }).catch(() => {});
-  }, [entryId]);
+  }, [mounted, user, entryId]);
 
   // Cycle writing prompts every 4s
   useEffect(() => {
@@ -113,8 +121,8 @@ function WritePageContent() {
   }, [isFocused]);
 
   async function doSave(t: string, c: string, mood = selectedMood) {
+    if (!mounted) return;
     if (!c.trim()) { setSaveStatus('idle'); return; }
-    const user = getUser();
     if (!user) return;
     try {
       if (savedId) {
@@ -143,6 +151,8 @@ function WritePageContent() {
     }
     router.push('/');
   };
+
+  if (!mounted) return null;
 
   const uiOpacity = isFocused && content.length > 0 ? 0.15 : 1;
 

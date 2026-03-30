@@ -12,24 +12,39 @@ import { computeStreak, getGreeting } from '@/lib/utils';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [user, setUser] = useState<{ id: number; name: string } | null>(null);
+  const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
+    setMounted(true);
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) setGreeting('Good morning');
+    else if (hour >= 12 && hour < 17) setGreeting('Good afternoon');
+    else if (hour >= 17 && hour < 21) setGreeting('Good evening');
+    else setGreeting('Good night');
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     const token = getToken();
     if (!token) { router.replace('/auth'); return; }
-    const user = getUser();
-    if (!user) { router.replace('/auth'); return; }
+    const u = getUser();
+    if (!u) { router.replace('/auth'); return; }
+    setUser(u as { id: number; name: string });
 
-    getEntries(user.id)
+    getEntries(u.id)
       .then(setEntries)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [router]);
+  }, [mounted, router]);
 
-  const user = getUser();
+  if (!mounted) return null;
+
   const streak = computeStreak(entries);
   const filtered = entries.filter((e) =>
     !search ||
@@ -52,7 +67,7 @@ export default function DashboardPage() {
                 <span className="font-heading text-lg font-medium text-dark">Dejaview</span>
               </div>
               <h1 className="text-[28px] text-dark mb-1 font-heading">
-                {getGreeting(user?.name)} ☀️
+                {greeting}{user?.name ? `, ${user.name}` : ''} ☀️
               </h1>
               <p className="text-[15px] text-muted font-serif">
                 {streak > 0

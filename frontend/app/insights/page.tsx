@@ -69,7 +69,12 @@ export default function InsightsPage() {
   const [weekSummary, setWeekSummary] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(true);
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
+    if (!mounted) return;
     if (!getToken()) { router.replace('/auth'); return; }
     const user = getUser();
     if (!user) { router.replace('/auth'); return; }
@@ -97,43 +102,49 @@ export default function InsightsPage() {
       }
       setSummaryLoading(false);
     }).catch(() => { setLoading(false); setSummaryLoading(false); });
-  }, [router]);
+  }, [mounted, router]);
 
-  // ── Stats ────────────────────────────────────────────────────────────────
+  const [streak, setStreak] = useState(0);
+  const [topMood, setTopMood] = useState('calm');
+  const [chartData, setChartData] = useState<any[]>([]);
+
+  useEffect(() => {
+    setStreak(computeStreak(entries));
+
+    const thisMonthEntries = entries.filter((e) => {
+      const d = new Date(e.createdAt);
+      const now = new Date();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const moodFreq = thisMonthEntries.reduce<Record<string, number>>((acc, e) => {
+      const m = e.mood ?? 'calm';
+      acc[m] = (acc[m] ?? 0) + 1;
+      return acc;
+    }, {});
+    setTopMood(Object.entries(moodFreq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'calm');
+
+    const cd = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - i));
+      const dateStr = date.toISOString().split('T')[0];
+
+      const dayEntries = entries.filter((e) => e.createdAt.split('T')[0] === dateStr);
+      const avgScore = dayEntries.length > 0
+        ? dayEntries.reduce((sum, e) => sum + (MOOD_SCORE[e.mood ?? 'calm'] ?? 3), 0) / dayEntries.length
+        : null;
+
+      return {
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        mood: avgScore !== null ? +avgScore.toFixed(2) : null,
+      };
+    });
+    setChartData(cd);
+  }, [entries]);
+
+  if (!mounted) return null;
 
   const totalEntries = entries.length;
-  const streak = computeStreak(entries);
-
-  // Top mood this month — uses stored entry.mood directly
-  const thisMonth = entries.filter((e) => {
-    const d = new Date(e.createdAt);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  });
-  const moodFrequency = thisMonth.reduce<Record<string, number>>((acc, e) => {
-    const m = e.mood ?? 'calm';
-    acc[m] = (acc[m] ?? 0) + 1;
-    return acc;
-  }, {});
-  const topMood = Object.entries(moodFrequency).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'calm';
   const topMoodMeta = getMoodMeta(topMood);
-
-  // Mood chart — last 30 days using stored mood + MOOD_SCORE
-  const chartData = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (29 - i));
-    const dateStr = date.toISOString().split('T')[0];
-
-    const dayEntries = entries.filter((e) => e.createdAt.split('T')[0] === dateStr);
-    const avgScore = dayEntries.length > 0
-      ? dayEntries.reduce((sum, e) => sum + (MOOD_SCORE[e.mood ?? 'calm'] ?? 3), 0) / dayEntries.length
-      : null;
-
-    return {
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      mood: avgScore !== null ? +avgScore.toFixed(2) : null,
-    };
-  });
 
   // Mood breakdown — each entry's stored mood, no detectMood
   const MOOD_LIST = ['happy', 'calm', 'sad', 'anxious', 'angry', 'grateful', 'energized'];
