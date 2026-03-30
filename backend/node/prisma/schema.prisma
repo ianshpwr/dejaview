@@ -23,4 +23,7 @@ model Journal {
   userId    Int
   faissId   Int?
   user      User     @relation(fields: [userId], references: [id])
+  mood       String?
+  wordCount  Int?
+  tags       String[]
 }
