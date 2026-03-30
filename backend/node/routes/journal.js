@@ -233,7 +233,14 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
       if (faissRes.ok) {
         const faissData = await faissRes.json()
         console.log('[FAISS RAW RESPONSE]', JSON.stringify(faissData))
-        const faissIds = faissData.ids || faissData.faissIds || []
+        
+        const faissIds = 
+          faissData.ids || 
+          faissData.faissIds || 
+          faissData.results?.map(r => r.id) || 
+          faissData.matches?.map(r => r.id) || 
+          []
+        
         console.log('[FAISS IDs]', faissIds)
         
         if (faissIds.length > 0) {
