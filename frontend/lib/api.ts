@@ -118,7 +118,19 @@ export async function updateEntry(
 }
 
 export async function deleteEntry(id: number): Promise<void> {
-  return request<void>(`/journal/entries/${id}`, { method: 'DELETE' });
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/journal/entries/${id}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
+    }
+  )
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${res.status}`)
+  }
 }
 
 export async function chatWithAI(
@@ -130,4 +142,21 @@ export async function chatWithAI(
     method: 'POST',
     body: JSON.stringify({ query, history, userId }),
   });
+}
+
+export async function getJournalSummary(): Promise<{
+  summary: string;
+  entryCount: number;
+}> {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/journal/entries/summary`,
+    {
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    }
+  )
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${res.status}`)
+  }
+  return res.json()
 }

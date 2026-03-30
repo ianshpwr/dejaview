@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { Trash2 } from 'lucide-react';
 import type { JournalEntry } from '@/lib/api';
 import { getMoodMeta } from '@/lib/mood';
 import { computeWordCount, formatDate } from '@/lib/utils';
@@ -10,9 +11,10 @@ import { computeWordCount, formatDate } from '@/lib/utils';
 interface JournalCardProps {
   entry: JournalEntry;
   index: number;
+  onDelete?: (id: number) => void;
 }
 
-export function JournalCard({ entry, index }: JournalCardProps) {
+export function JournalCard({ entry, index, onDelete }: JournalCardProps) {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -47,6 +49,7 @@ export function JournalCard({ entry, index }: JournalCardProps) {
       onClick={() => router.push(`/write?id=${entry.id}`)}
       className="relative p-5 cursor-pointer rounded-[20px] border transition-all"
       style={{
+        position: 'relative',
         backgroundColor: meta.bgColor,
         borderColor: isHovered ? meta.borderColor : `${meta.borderColor}60`,
         transform: isHovered
@@ -88,6 +91,49 @@ export function JournalCard({ entry, index }: JournalCardProps) {
       <div className="mt-4 pt-3 border-t border-pink-light/30">
         <span className="font-sans text-[12px] text-muted">{wordCount} words</span>
       </div>
+
+      {/* Delete button — visible on hover */}
+      {isHovered && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (confirm('Delete this entry? This cannot be undone.')) {
+              onDelete?.(entry.id);
+            }
+          }}
+          style={{
+            position: 'absolute',
+            bottom: '16px',
+            right: '16px',
+            background: 'transparent',
+            border: '1px solid #ffaaab',
+            borderRadius: '8px',
+            padding: '4px 8px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            color: '#a89880',
+            fontSize: '12px',
+            fontFamily: 'var(--font-dm)',
+            transition: 'all 150ms ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = '#ff5e6c';
+            e.currentTarget.style.color = 'white';
+            e.currentTarget.style.borderColor = '#ff5e6c';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = '#a89880';
+            e.currentTarget.style.borderColor = '#ffaaab';
+          }}
+        >
+          <Trash2 size={12} />
+          Delete
+        </button>
+      )}
     </motion.div>
   );
 }

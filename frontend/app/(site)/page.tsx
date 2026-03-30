@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Flame, Plus, Search, Feather } from 'lucide-react';
 import { Sidebar, MobileTabBar } from '@/app/components/Sidebar';
 import { JournalCard, JournalCardSkeleton } from '@/app/components/JournalCard';
-import { getEntries, type JournalEntry } from '@/lib/api';
+import { getEntries, deleteEntry, getJournalSummary, type JournalEntry } from '@/lib/api';
 import { getToken, getUser } from '@/lib/auth';
 import { computeStreak, getGreeting } from '@/lib/utils';
 
@@ -19,6 +19,9 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [user, setUser] = useState<{ id: number; name: string } | null>(null);
   const [greeting, setGreeting] = useState('');
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -44,6 +47,29 @@ export default function DashboardPage() {
   }, [mounted, router]);
 
   if (!mounted) return null;
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteEntry(id);
+      setEntries(prev => prev.filter(e => e.id !== id));
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert('Failed to delete entry. Please try again.');
+    }
+  };
+
+  const handleGetSummary = async () => {
+    setSummaryLoading(true);
+    setShowSummary(true);
+    try {
+      const data = await getJournalSummary();
+      setSummary(data.summary);
+    } catch {
+      setSummary('Failed to generate summary. Please try again.');
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
 
   const streak = computeStreak(entries);
   const filtered = entries.filter((e) =>
@@ -90,6 +116,23 @@ export default function DashboardPage() {
                 </motion.div>
               )}
 
+              <button
+                onClick={handleGetSummary}
+                style={{
+                  background: '#fffbec',
+                  border: '1px solid #ffaaab',
+                  borderRadius: '100px',
+                  padding: '10px 20px',
+                  color: '#1f1a14',
+                  fontFamily: 'var(--font-dm)',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 200ms ease',
+                }}
+              >
+                ✨ My Summary
+              </button>
+
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
@@ -119,6 +162,74 @@ export default function DashboardPage() {
         <div className="flex-1 overflow-y-auto px-6 sm:px-10 pb-24 md:pb-10">
           {error && (
             <p className="text-coral text-sm font-sans mb-4">{error}</p>
+          )}
+
+          {/* Summary panel */}
+          {showSummary && (
+            <div style={{
+              background: '#fffbec',
+              border: '1px solid #ffaaab',
+              borderRadius: '20px',
+              padding: '28px 32px',
+              marginBottom: '32px',
+              position: 'relative',
+            }}>
+              <button
+                onClick={() => setShowSummary(false)}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#a89880',
+                  fontSize: '20px',
+                }}
+              >
+                ×
+              </button>
+              <h3 style={{
+                fontFamily: 'var(--font-playfair)',
+                fontSize: '20px',
+                color: '#1f1a14',
+                marginBottom: '16px',
+              }}>
+                ✨ Your Journal Story
+              </h3>
+              {summaryLoading ? (
+                <div style={{
+                  display: 'flex',
+                  gap: '6px',
+                  alignItems: 'center',
+                  color: '#a89880',
+                  fontFamily: 'var(--font-dm)',
+                  fontSize: '14px',
+                }}>
+                  <span>Reflecting on your journals</span>
+                  <span style={{ animation: 'pulse 1s infinite' }}>...</span>
+                </div>
+              ) : (
+                <p style={{
+                  fontFamily: 'var(--font-lora)',
+                  fontSize: '16px',
+                  color: '#1f1a14',
+                  lineHeight: '1.8',
+                  margin: 0,
+                }}>
+                  {summary}
+                </p>
+              )}
+              <p style={{
+                fontFamily: 'var(--font-dm)',
+                fontSize: '11px',
+                color: '#a89880',
+                marginTop: '16px',
+                marginBottom: 0,
+              }}>
+                Generated from your journal entries by Dejaview AI
+              </p>
+            </div>
           )}
 
           {loading ? (
@@ -163,7 +274,7 @@ export default function DashboardPage() {
             <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6">
               {filtered.map((entry, i) => (
                 <div key={entry.id} className="break-inside-avoid mb-6">
-                  <JournalCard entry={entry} index={i} />
+                  <JournalCard entry={entry} index={i} onDelete={handleDelete} />
                 </div>
               ))}
             </div>
