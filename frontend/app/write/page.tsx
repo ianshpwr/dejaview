@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,7 +17,7 @@ const CYCLING_PROMPTS = [
 
 type SaveStatus = 'idle' | 'saving' | 'saved';
 
-export default function WritePage() {
+function WritePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const entryId = searchParams.get('id');
@@ -218,5 +219,30 @@ export default function WritePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function WritePage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            background: '#fff5d7',
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: 'var(--font-dm-sans)',
+            color: '#a89880',
+            fontSize: '14px',
+          }}
+        >
+          Loading editor...
+        </div>
+      }
+    >
+      <WritePageContent />
+    </Suspense>
   );
 }
