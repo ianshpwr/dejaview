@@ -71,27 +71,50 @@ export async function getEntries(userId: number): Promise<JournalEntry[]> {
 }
 
 export async function createEntry(
-  title: string,
-  content: string,
-  userId: number,
-  mood = 'calm'
-): Promise<JournalEntry> {
-  return request<JournalEntry>('/journal/entries', {
-    method: 'POST',
-    body: JSON.stringify({ title, content, userId, mood }),
-  });
+  title: string, 
+  content: string, 
+  mood: string
+) {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/journal/entries`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ title, content, mood })
+    }
+  )
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${res.status}`)
+  }
+  return res.json()
 }
 
 export async function updateEntry(
   id: number,
   title: string,
   content: string,
-  mood?: string
-): Promise<JournalEntry> {
-  return request<JournalEntry>(`/journal/entries/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ title, content, ...(mood ? { mood } : {}) }),
-  });
+  mood: string
+) {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/journal/entries/${id}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ title, content, mood })
+    }
+  )
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${res.status}`)
+  }
+  return res.json()
 }
 
 export async function deleteEntry(id: number): Promise<void> {

@@ -19,11 +19,10 @@ model Journal {
   id        Int      @id @default(autoincrement())
   title     String
   content   String
-  createdAt DateTime @default(now())
-  userId    Int
+  mood      String?  @default("calm")
   faissId   Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  mood       String?
-  wordCount  Int?
-  tags       String[]
 }

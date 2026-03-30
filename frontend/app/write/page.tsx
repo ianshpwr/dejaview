@@ -74,7 +74,7 @@ function WritePageContent() {
       if (e) {
         setTitle(e.title);
         setContent(e.content);
-        if (e.mood) setSelectedMood(e.mood);
+        setSelectedMood(e.mood || 'calm');
       }
     }).catch(() => {});
   }, [mounted, user, entryId]);
@@ -128,7 +128,7 @@ function WritePageContent() {
       if (savedId) {
         await updateEntry(savedId, t, c, mood);
       } else {
-        const entry = await createEntry(t, c, user.id, mood);
+        const entry = await createEntry(t, c, mood);
         setSavedId(entry.id);
       }
       setSaveStatus('saved');
