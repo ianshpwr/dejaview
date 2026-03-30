@@ -1,7 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import Groq from 'groq-sdk';
-import { searchFaiss } from "../services/faiss.js"; // Optional removal
 import { askAI } from "../services/chat.js";
 import { addVector, searchVector } from "../services/vectorize.js";
 import { authMiddleware } from "../middleware/auth.js";
@@ -12,16 +11,12 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // Columns confirmed to exist in the production DB.
 // updatedAt does NOT exist — the migration never ran on the live DB.
-const COLS = `id, title, content, mood, "faissId", "createdAt", "userId"`;
+const COLS = `id, title, content, mood, "createdAt", "userId"`;
 
 // ── Health ─────────────────────────────────────────────────────────────────
 
 router.get('/', (req, res) => {
   res.json({ status: 'Journal API is working' });
-});
-
-router.get("/debug-faiss", (req, res) => {
-  res.json({ FAISS_URL: process.env.FAISS_URL });
 });
 
 // ── GET /entries ────────────────────────────────────────────────────────────
@@ -140,20 +135,14 @@ router.post('/entries', authMiddleware, async (req, res) => {
     
     try {
       // Add immediately to Vectorize using entry ID
-      const vectorId = await addVector(process.env, content, {
+      await addVector(process.env, content, {
         journalId: entry.id,
         userId: req.userId,
         title: entry.title,
         mood: entry.mood,
+        createdAt: entry.createdAt,
         content: content.slice(0, 500)
       })
-
-      // Store vectorId in DB faissId column
-      await prisma.$queryRawUnsafe(
-        `UPDATE "Journal" SET "faissId" = $1 WHERE id = $2`,
-        vectorId, entry.id
-      )
-      entry.faissId = vectorId
     } catch (vecErr) {
       console.log('Vectorize unavailable or missing bindings:', vecErr.message)
     }
@@ -230,8 +219,10 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
     let matchedJournals = []
     try {
       const matches = await searchVector(process.env, message, 5)
+      console.log(`[VECTOR SEARCH] Found ${matches?.length || 0} relative matches.`);
       
       if (matches && matches.length > 0) {
+        console.log('[VECTOR METADATA]', matches.map(m => m.metadata?.title || 'Untitled'));
         // Filter out matches not belonging to user if using a shared index
         // Or directly construct journals from metadata without DB trip
         matchedJournals = matches
@@ -262,7 +253,7 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
           .join(' OR ')
         
         matchedJournals = await prisma.$queryRawUnsafe(`
-          SELECT id, title, content, mood, "faissId", "createdAt"
+          SELECT id, title, content, mood, "createdAt"
           FROM "Journal"
           WHERE "userId" = $1 AND (${conditions})
           ORDER BY "createdAt" DESC
@@ -273,7 +264,7 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
 
     if (!matchedJournals || matchedJournals.length === 0) {
       matchedJournals = await prisma.$queryRawUnsafe(`
-        SELECT id, title, content, mood, "faissId", "createdAt"
+        SELECT id, title, content, mood, "createdAt"
         FROM "Journal"
         WHERE "userId" = $1
         ORDER BY "createdAt" DESC
