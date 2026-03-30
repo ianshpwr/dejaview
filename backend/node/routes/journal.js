@@ -135,7 +135,7 @@ router.post('/entries', authMiddleware, async (req, res) => {
     
     try {
       // Add immediately to Vectorize using entry ID
-      await addVector(process.env, content, {
+      await addVector(content, {
         journalId: entry.id,
         userId: req.userId,
         title: entry.title,
@@ -218,7 +218,7 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
     // Search Vectorize for relevant journal entries
     let matchedJournals = []
     try {
-      const matches = await searchVector(process.env, message, 5)
+      const matches = await searchVector(message, 5)
       console.log(`[VECTOR SEARCH] Found ${matches?.length || 0} relative matches.`);
       
       if (matches && matches.length > 0) {

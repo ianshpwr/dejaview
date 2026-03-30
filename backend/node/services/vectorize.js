@@ -1,17 +1,16 @@
 // services/vectorize.js
 
-async function generateEmbedding(env, text) {
-  // Use Cloudflare Workers AI if available
-  if (env.AI) {
-    const response = await env.AI.run('@cf/baai/bge-small-en-v1.5', { text: [text] });
-    return response.data[0];
-  }
+const HF_TOKEN = process.env.HF_TOKEN;
+const CF_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
+const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+const CF_INDEX = process.env.CF_VECTOR_INDEX;
 
-  // Fallback to fetch (e.g., using Cloudflare REST API or another embedding model)
+async function generateEmbedding(text) {
+  // Use HuggingFace inference API to cleanly generate vector embeddings in Node
   const res = await fetch('https://api-inference.huggingface.co/pipeline/feature-extraction/BAAI/bge-small-en-v1.5', {
     method: 'POST',
     headers: { 
-      'Authorization': `Bearer ${env.HF_TOKEN || process.env.HF_TOKEN || ''}`,
+      'Authorization': `Bearer ${HF_TOKEN || ''}`,
       'Content-Type': 'application/json' 
     },
     body: JSON.stringify({ inputs: text })
@@ -19,45 +18,84 @@ async function generateEmbedding(env, text) {
   
   if (!res.ok) throw new Error('Failed to generate embedding');
   const data = await res.json();
-  return Array.isArray(data[0]) ? data[0] : data;
+  const vector = Array.isArray(data[0]) ? data[0] : data;
+  
+  console.log(`[EMBEDDING GENERATED] Vector length: ${vector.length}`);
+  return vector;
 }
 
-export async function addVector(env, text, metadata) {
-  if (!env.VECTORIZE && !process.env.VECTORIZE) {
-    throw new Error("Vectorize binding not found");
+export async function addVector(text, metadata) {
+  if (!CF_ACCOUNT_ID || !CF_API_TOKEN || !CF_INDEX) {
+    throw new Error("Missing Cloudflare Vectorize config variables");
   }
   
-  const vectorizeBinding = env.VECTORIZE || process.env.VECTORIZE;
-  const values = await generateEmbedding(env, text);
+  const values = await generateEmbedding(text);
+  const vectorId = metadata.journalId.toString(); // Use exact journal.id as vector ID
   
-  // Create a unique vector ID (e.g. using journalId)
-  const vectorId = metadata.journalId.toString();
-  
-  const vector = {
-    id: vectorId,
-    values,
-    metadata
+  const payload = {
+    vectors: [
+      {
+        id: vectorId,
+        values,
+        metadata
+      }
+    ]
   };
   
-  // Insert into Cloudflare Vectorize
-  await vectorizeBinding.insert([vector]);
+  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/vectorize/v2/indexes/${CF_INDEX}/upsert`;
+
+  // Insert vector using Cloudflare Vectorize REST API (not bindings)
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${CF_API_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Vectorize upsert failed: ${errorText}`);
+  }
   
+  console.log(`[VECTOR INSERTED] Vector ID: ${vectorId}`);
   return vectorId;
 }
 
-export async function searchVector(env, query, k = 5) {
-  if (!env.VECTORIZE && !process.env.VECTORIZE) {
-    throw new Error("Vectorize binding not found");
+export async function searchVector(query, k = 5) {
+  if (!CF_ACCOUNT_ID || !CF_API_TOKEN || !CF_INDEX) {
+    throw new Error("Missing Cloudflare Vectorize config variables");
   }
 
-  const vectorizeBinding = env.VECTORIZE || process.env.VECTORIZE;
-  const values = await generateEmbedding(env, query);
+  const values = await generateEmbedding(query);
   
-  // Query Cloudflare Vectorize
-  const result = await vectorizeBinding.query(values, { 
+  const payload = {
+    vector: values,
     topK: k,
-    returnMetadata: true 
-  });
+    returnMetadata: true
+  };
+
+  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/vectorize/v2/indexes/${CF_INDEX}/query`;
   
-  return result.matches || [];
+  // Query using Cloudflare Vectorize REST API
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${CF_API_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Vectorize query failed: ${errorText}`);
+  }
+  
+  const data = await res.json();
+  const matches = data.result?.matches || [];
+  
+  console.log(`[VECTOR SEARCH RESULTS] Match count: ${matches.length}`);
+  return matches;
 }
