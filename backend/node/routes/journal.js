@@ -259,14 +259,39 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
         }
       }
     } catch (faissErr) {
-      console.error('FAISS search failed:', faissErr.message)
-      // Fall back to most recent 3 entries
+      console.log('FAISS search failed:', faissErr.message)
+    }
+
+    if (!matchedJournals || matchedJournals.length === 0) {
+      const words = message
+        .toLowerCase()
+        .replace(/[^a-z0-9 ]/g, '')
+        .split(' ')
+        .filter(w => w.length > 3)
+        .slice(0, 4)
+      
+      if (words.length > 0) {
+        const conditions = words
+          .map((_, i) => `LOWER(content) LIKE $${i + 2}`)
+          .join(' OR ')
+        
+        matchedJournals = await prisma.$queryRawUnsafe(`
+          SELECT id, title, content, mood, "faissId", "createdAt"
+          FROM "Journal"
+          WHERE "userId" = $1 AND (${conditions})
+          ORDER BY "createdAt" DESC
+          LIMIT 5
+        `, req.userId, ...words.map(w => `%${w}%`))
+      }
+    }
+
+    if (!matchedJournals || matchedJournals.length === 0) {
       matchedJournals = await prisma.$queryRawUnsafe(`
-        SELECT id, title, content, mood, "createdAt"
+        SELECT id, title, content, mood, "faissId", "createdAt"
         FROM "Journal"
         WHERE "userId" = $1
         ORDER BY "createdAt" DESC
-        LIMIT 3
+        LIMIT 5
       `, req.userId)
     }
 
