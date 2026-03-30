@@ -1,5 +1,0 @@
-fastembed==0.7.3
-faiss-cpu==1.11.0
-numpy==2.0.2
-fastapi==0.111.0
-uvicorn==0.30.0

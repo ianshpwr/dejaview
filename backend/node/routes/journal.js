@@ -1,8 +1,9 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import Groq from 'groq-sdk';
-import { searchFaiss } from "../services/faiss.js";
+import { searchFaiss } from "../services/faiss.js"; // Optional removal
 import { askAI } from "../services/chat.js";
+import { addVector, searchVector } from "../services/vectorize.js";
 import { authMiddleware } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -125,33 +126,39 @@ router.post('/entries', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Content is required' })
     }
 
-    let faissId = null
-    try {
-      const faissRes = await fetch(process.env.FAISS_URL + '/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: content })
-      })
-      if (faissRes.ok) {
-        const faissData = await faissRes.json()
-        faissId = faissData.faissId ?? faissData.id ?? null
-      }
-    } catch (faissErr) {
-      console.error('FAISS unavailable:', faissErr.message)
-    }
-
     const rows = await prisma.$queryRawUnsafe(
-      `INSERT INTO "Journal" (title, content, mood, "faissId", "userId", "createdAt")
-       VALUES ($1, $2, $3, $4, $5, NOW())
+      `INSERT INTO "Journal" (title, content, mood, "userId", "createdAt")
+       VALUES ($1, $2, $3, $4, NOW())
        RETURNING ${COLS}`,
       title || 'Untitled',
       content,
       mood || 'calm',
-      faissId,
       req.userId
     )
+    
+    const entry = rows[0]
+    
+    try {
+      // Add immediately to Vectorize using entry ID
+      const vectorId = await addVector(process.env, content, {
+        journalId: entry.id,
+        userId: req.userId,
+        title: entry.title,
+        mood: entry.mood,
+        content: content.slice(0, 500)
+      })
 
-    res.status(201).json(rows[0])
+      // Store vectorId in DB faissId column
+      await prisma.$queryRawUnsafe(
+        `UPDATE "Journal" SET "faissId" = $1 WHERE id = $2`,
+        vectorId, entry.id
+      )
+      entry.faissId = vectorId
+    } catch (vecErr) {
+      console.log('Vectorize unavailable or missing bindings:', vecErr.message)
+    }
+
+    res.status(201).json(entry)
   } catch (err) {
     console.error('[POST /entries]', err.message)
     res.status(500).json({ error: err.message })
@@ -219,47 +226,26 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Message is required' })
     }
 
-    // Search FAISS for relevant journal entries
+    // Search Vectorize for relevant journal entries
     let matchedJournals = []
     try {
-      const faissRes = await fetch(
-        process.env.FAISS_URL + '/search',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: message, k: 5 })
-        }
-      )
-      if (faissRes.ok) {
-        const faissData = await faissRes.json()
-        console.log('[FAISS RAW RESPONSE]', JSON.stringify(faissData))
-        
-        const faissIds = 
-          faissData.ids || 
-          faissData.faissIds || 
-          faissData.results?.map(r => r.id) || 
-          faissData.matches?.map(r => r.id) || 
-          []
-        
-        console.log('[FAISS IDs]', faissIds)
-        
-        if (faissIds.length > 0) {
-          const placeholders = faissIds
-            .map((_, i) => `$${i + 2}`)
-            .join(', ')
-          const journals = await prisma.$queryRawUnsafe(`
-            SELECT id, title, content, mood, "createdAt"
-            FROM "Journal"
-            WHERE "faissId" IN (${placeholders})
-            AND "userId" = $1
-          `, req.userId, ...faissIds)
-          matchedJournals = journals || []
-          console.log('[JOURNALS MATCHED]', matchedJournals?.length, 
-            matchedJournals?.map(j => j.title))
-        }
+      const matches = await searchVector(process.env, message, 5)
+      
+      if (matches && matches.length > 0) {
+        // Filter out matches not belonging to user if using a shared index
+        // Or directly construct journals from metadata without DB trip
+        matchedJournals = matches
+          .filter(m => m.metadata?.userId === req.userId)
+          .map(m => ({
+            id: m.metadata.journalId,
+            title: m.metadata.title || 'Journal Entry',
+            content: m.metadata.content,
+            mood: m.metadata.mood || 'calm',
+            createdAt: m.metadata.createdAt || new Date()
+          }))
       }
-    } catch (faissErr) {
-      console.log('FAISS search failed:', faissErr.message)
+    } catch (vecErr) {
+      console.log('Vectorize search failed:', vecErr.message)
     }
 
     if (!matchedJournals || matchedJournals.length === 0) {
