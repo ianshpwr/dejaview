@@ -9,6 +9,7 @@ import { JournalCard, JournalCardSkeleton } from '@/app/components/JournalCard';
 import { getEntries, deleteEntry, getJournalSummary, type JournalEntry } from '@/lib/api';
 import { getToken, getUser } from '@/lib/auth';
 import { computeStreak, getGreeting } from '@/lib/utils';
+import { LandingMarketing } from '@/app/components/LandingMarketing';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [needsAuth, setNeedsAuth] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -35,9 +37,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!mounted) return;
     const token = getToken();
-    if (!token) { router.replace('/auth'); return; }
+    if (!token) { setNeedsAuth(true); return; }
     const u = getUser();
-    if (!u) { router.replace('/auth'); return; }
+    if (!u) { setNeedsAuth(true); return; }
     setUser(u as { id: number; name: string });
 
     getEntries(u.id)
@@ -47,6 +49,7 @@ export default function DashboardPage() {
   }, [mounted, router]);
 
   if (!mounted) return null;
+  if (needsAuth) return <LandingMarketing />;
 
   const handleDelete = async (id: number) => {
     try {
