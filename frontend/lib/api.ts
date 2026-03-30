@@ -134,14 +134,25 @@ export async function deleteEntry(id: number): Promise<void> {
 }
 
 export async function chatWithAI(
-  query: string,
-  history: ChatMessage[],
-  userId: number
-): Promise<ChatResponse> {
-  return request<ChatResponse>('/journal/entries/chat', {
-    method: 'POST',
-    body: JSON.stringify({ query, history, userId }),
-  });
+  message: string, 
+  history: { role: string; content: string }[]
+) {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/journal/entries/chat`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ message, history })
+    }
+  )
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${res.status}`)
+  }
+  return res.json()
 }
 
 export async function getJournalSummary(): Promise<{

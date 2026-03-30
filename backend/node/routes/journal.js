@@ -211,35 +211,77 @@ router.delete('/entries/:id', authMiddleware, async (req, res) => {
 
 // ── POST /entries/chat ──────────────────────────────────────────────────────
 
-router.post("/entries/chat", authMiddleware, async (req, res) => {
-  const { query, history = [] } = req.body;
+router.post('/entries/chat', authMiddleware, async (req, res) => {
   try {
-    let journals = [];
-    try {
-      const raw = await searchFaiss(query, 5);
-      const ids = raw.map(r => r.id);
-      if (ids.length > 0) {
-        journals = await prisma.$queryRawUnsafe(
-          `SELECT ${COLS} FROM "Journal"
-           WHERE "userId" = $1 AND "faissId" = ANY($2::int[])`,
-          req.userId, ids
-        )
-      }
-    } catch (faissErr) {
-      console.error('FAISS search failed, using fallback:', faissErr.message);
-      journals = await prisma.$queryRawUnsafe(
-        `SELECT ${COLS} FROM "Journal"
-         WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 5`,
-        req.userId
-      )
+    const { message, history = [] } = req.body
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message is required' })
     }
 
-    const answer = await askAI({ query, history, journals });
-    res.json({ answer, memories: journals });
+    // Search FAISS for relevant journal entries
+    let matchedJournals = []
+    try {
+      const faissRes = await fetch(
+        process.env.FAISS_URL + '/search',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: message, k: 5 })
+        }
+      )
+      if (faissRes.ok) {
+        const faissData = await faissRes.json()
+        const faissIds = faissData.ids || faissData.faissIds || []
+        
+        if (faissIds.length > 0) {
+          const placeholders = faissIds
+            .map((_, i) => `$${i + 2}`)
+            .join(', ')
+          const journals = await prisma.$queryRawUnsafe(`
+            SELECT id, title, content, mood, "createdAt"
+            FROM "Journal"
+            WHERE "faissId" IN (${placeholders})
+            AND "userId" = $1
+          `, req.userId, ...faissIds)
+          matchedJournals = journals || []
+        }
+      }
+    } catch (faissErr) {
+      console.error('FAISS search failed:', faissErr.message)
+      // Fall back to most recent 3 entries
+      matchedJournals = await prisma.$queryRawUnsafe(`
+        SELECT id, title, content, mood, "createdAt"
+        FROM "Journal"
+        WHERE "userId" = $1
+        ORDER BY "createdAt" DESC
+        LIMIT 3
+      `, req.userId)
+    }
+
+    // Pass full history (last 12 messages) to AI
+    const recentHistory = history.slice(-12)
+    
+    const reply = await askAI(
+      matchedJournals, 
+      message, 
+      recentHistory
+    )
+
+    res.json({ 
+      reply,
+      referencedEntries: matchedJournals.map(j => ({
+        id: j.id,
+        title: j.title,
+        mood: j.mood,
+        createdAt: j.createdAt,
+        excerpt: j.content.slice(0, 100)
+      }))
+    })
   } catch (err) {
-    console.error('[POST /entries/chat]', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[POST /entries/chat]', err.message)
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
 export default router;
