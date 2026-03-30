@@ -41,8 +41,16 @@ export default function AuthPage() {
         body: JSON.stringify(body),
       });
 
+      if (!res.ok || res.headers.get('content-type')?.includes('text/html')) {
+        const text = await res.text().catch(() => '');
+        throw new Error(
+          text.includes('<!DOCTYPE')
+            ? `Server error: ${res.status} ${res.statusText}`
+            : (() => { try { return JSON.parse(text).message; } catch { return text || `HTTP ${res.status}`; } })()
+        );
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? 'Something went wrong');
+
 
       setToken(data.token);
       router.replace('/');

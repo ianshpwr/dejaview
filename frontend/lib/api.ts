@@ -28,9 +28,13 @@ async function request<T>(
     throw new Error('Unauthorized');
   }
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `HTTP ${res.status}`);
+  if (!res.ok || res.headers.get('content-type')?.includes('text/html')) {
+    const text = await res.text().catch(() => '');
+    throw new Error(
+      text.includes('<!DOCTYPE')
+        ? `Server error: ${res.status} ${res.statusText}`
+        : text || `HTTP ${res.status}`
+    );
   }
 
   return res.json() as Promise<T>;
