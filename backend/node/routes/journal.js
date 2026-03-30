@@ -232,7 +232,9 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
       )
       if (faissRes.ok) {
         const faissData = await faissRes.json()
+        console.log('[FAISS RAW RESPONSE]', JSON.stringify(faissData))
         const faissIds = faissData.ids || faissData.faissIds || []
+        console.log('[FAISS IDs]', faissIds)
         
         if (faissIds.length > 0) {
           const placeholders = faissIds
@@ -245,6 +247,8 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
             AND "userId" = $1
           `, req.userId, ...faissIds)
           matchedJournals = journals || []
+          console.log('[JOURNALS MATCHED]', matchedJournals?.length, 
+            matchedJournals?.map(j => j.title))
         }
       }
     } catch (faissErr) {
@@ -273,6 +277,11 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
       recentHistory,
       userName
     )
+
+    console.log('[SENDING TO FRONTEND]', {
+      replyLength: reply?.length,
+      entriesCount: matchedJournals?.length
+    })
 
     res.json({ 
       reply,
