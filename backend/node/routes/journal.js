@@ -18,6 +18,21 @@ router.get('/', (req, res) => {
     }
 });
 
+// ── TEMPORARY: Column inspector ────────────────────────────────────────────
+router.get('/debug/columns', async (req, res) => {
+  try {
+    const result = await prisma.$queryRawUnsafe(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_name = 'Journal'
+      ORDER BY ordinal_position
+    `)
+    res.json(result)
+  } catch (err) {
+    res.json({ error: err.message })
+  }
+})
+
 router.get("/debug-faiss", (req, res) => {
     try {
         res.json({ FAISS_URL: process.env.FAISS_URL });
