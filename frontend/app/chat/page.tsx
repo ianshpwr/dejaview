@@ -114,7 +114,7 @@ export default function ChatPage() {
 
       const aiMessage = {
         role: 'ai' as const,
-        content: response.reply || response.message || response,
+        content: response.reply || '',
         timestamp: Date.now()
       };
 

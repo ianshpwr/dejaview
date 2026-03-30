@@ -259,13 +259,19 @@ router.post('/entries/chat', authMiddleware, async (req, res) => {
       `, req.userId)
     }
 
+    const userResult = await prisma.$queryRawUnsafe(`
+      SELECT name FROM "User" WHERE id = $1
+    `, req.userId)
+    const userName = userResult?.[0]?.name || 'friend'
+
     // Pass full history (last 12 messages) to AI
     const recentHistory = history.slice(-12)
     
     const reply = await askAI(
       matchedJournals, 
       message, 
-      recentHistory
+      recentHistory,
+      userName
     )
 
     res.json({ 
