@@ -94,8 +94,8 @@ export default function InsightsPage() {
         const context = week.map((e) => `Title: ${e.title}\nEntry: ${e.content}`).join('\n\n');
         const query = `Based on these recent journal entries, give me a warm 2-sentence summary of my emotional themes this week. Be specific and kind.\n\n${context}`;
         try {
-          const res = await chatWithAI(query, [], user.id);
-          setWeekSummary(res.answer);
+          const res = await chatWithAI(query, []);
+          setWeekSummary(res.reply || '');
         } catch { setWeekSummary(''); }
       } else {
         setWeekSummary('');
