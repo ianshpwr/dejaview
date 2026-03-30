@@ -45,6 +45,9 @@ function WritePageContent() {
   const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const promptTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Ref so auto-save closures always read the latest mood without stale capture
+  const selectedMoodRef = useRef(selectedMood);
+  useEffect(() => { selectedMoodRef.current = selectedMood; }, [selectedMood]);
 
   const wordCount = computeWordCount(content);
 
@@ -91,7 +94,7 @@ function WritePageContent() {
     // Auto-save debounce 1500ms
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus('saving');
-    saveTimer.current = setTimeout(() => doSave(title, e.target.value, selectedMood), 1500);
+    saveTimer.current = setTimeout(() => doSave(title, e.target.value, selectedMoodRef.current), 1500);
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +102,7 @@ function WritePageContent() {
     setIsDirty(true);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus('saving');
-    saveTimer.current = setTimeout(() => doSave(e.target.value, content, selectedMood), 1500);
+    saveTimer.current = setTimeout(() => doSave(e.target.value, content, selectedMoodRef.current), 1500);
   };
 
   const handleMouseMove = useCallback(() => {
@@ -129,7 +132,7 @@ function WritePageContent() {
 
   const handleSaveAndClose = async () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    await doSave(title, content);
+    await doSave(title, content, selectedMoodRef.current);
     router.push('/');
   };
 

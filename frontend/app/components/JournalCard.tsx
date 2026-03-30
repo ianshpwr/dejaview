@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import type { JournalEntry } from '@/lib/api';
-import { getMoodMeta, detectMood } from '@/lib/mood';
+import { getMoodMeta } from '@/lib/mood';
 import { computeWordCount, formatDate } from '@/lib/utils';
 
 interface JournalCardProps {
@@ -18,7 +18,7 @@ export function JournalCard({ entry, index }: JournalCardProps) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
-  const mood = entry.mood ?? detectMood(entry.content);
+  const mood = entry.mood ?? 'calm';
   const meta = getMoodMeta(mood);
   const wordCount = entry.wordCount ?? computeWordCount(entry.content);
   const preview = entry.content.slice(0, 120).trim();

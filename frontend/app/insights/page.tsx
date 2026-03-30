@@ -11,19 +11,44 @@ import { Sidebar, MobileTabBar } from '@/app/components/Sidebar';
 import { HeatmapGrid } from '@/app/components/HeatmapGrid';
 import { getToken, getUser } from '@/lib/auth';
 import { getEntries, chatWithAI, type JournalEntry } from '@/lib/api';
-import { detectMood, getMoodMeta, getMoodScore, moodEmojis } from '@/lib/mood';
+import { getMoodMeta } from '@/lib/mood';
 import { computeWordCount, formatDate } from '@/lib/utils';
+
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const MOOD_SCORE: Record<string, number> = {
+  happy: 5,
+  grateful: 5,
+  energized: 4,
+  calm: 3,
+  anxious: 2,
+  sad: 1,
+  angry: 1,
+};
+
+// ── Local helpers ─────────────────────────────────────────────────────────────
 
 function computeStreak(entries: JournalEntry[]): number {
   if (!entries.length) return 0;
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const dateSet = new Set(entries.map((e) => { const d = new Date(e.createdAt); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }));
-  let streak = 0; const cursor = new Date(today);
-  while (true) { const k = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`; if (dateSet.has(k)) { streak++; cursor.setDate(cursor.getDate() - 1); } else break; }
+  const dateSet = new Set(entries.map((e) => {
+    const d = new Date(e.createdAt);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }));
+  let streak = 0;
+  const cursor = new Date(today);
+  while (true) {
+    const k = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+    if (dateSet.has(k)) { streak++; cursor.setDate(cursor.getDate() - 1); } else break;
+  }
   return streak;
 }
 
-const CustomTooltip = ({ active, payload, label }: {active?: boolean; payload?: {value: number}[]; label?: string }) => {
+const CustomTooltip = ({ active, payload, label }: {
+  active?: boolean;
+  payload?: { value: number }[];
+  label?: string;
+}) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-surface border border-pink-light rounded-lg px-3 py-2 text-xs shadow-lg">
@@ -34,6 +59,8 @@ const CustomTooltip = ({ active, payload, label }: {active?: boolean; payload?: 
   }
   return null;
 };
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function InsightsPage() {
   const router = useRouter();
@@ -72,34 +99,57 @@ export default function InsightsPage() {
     }).catch(() => { setLoading(false); setSummaryLoading(false); });
   }, [router]);
 
-  // Stats
+  // ── Stats ────────────────────────────────────────────────────────────────
+
   const totalEntries = entries.length;
   const streak = computeStreak(entries);
-  const moodCounts = entries.reduce<Record<string, number>>((acc, e) => {
-    const m = e.mood ?? detectMood(e.content);
+
+  // Top mood this month — uses stored entry.mood directly
+  const thisMonth = entries.filter((e) => {
+    const d = new Date(e.createdAt);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const moodFrequency = thisMonth.reduce<Record<string, number>>((acc, e) => {
+    const m = e.mood ?? 'calm';
     acc[m] = (acc[m] ?? 0) + 1;
     return acc;
   }, {});
-  const topMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'calm';
+  const topMood = Object.entries(moodFrequency).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'calm';
+  const topMoodMeta = getMoodMeta(topMood);
 
-  // Mood chart — last 30 days
+  // Mood chart — last 30 days using stored mood + MOOD_SCORE
   const chartData = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (29 - i));
-    const dayEntries = entries.filter((e) => {
-      const ed = new Date(e.createdAt);
-      return ed.getFullYear() === d.getFullYear() && ed.getMonth() === d.getMonth() && ed.getDate() === d.getDate();
-    });
-    if (!dayEntries.length) return { date: formatDate(d.toISOString()), mood: null };
-    const avg = dayEntries.reduce((s, e) => s + getMoodScore(e.mood ?? detectMood(e.content)), 0) / dayEntries.length;
-    return { date: formatDate(d.toISOString()), mood: +avg.toFixed(2) };
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - i));
+    const dateStr = date.toISOString().split('T')[0];
+
+    const dayEntries = entries.filter((e) => e.createdAt.split('T')[0] === dateStr);
+    const avgScore = dayEntries.length > 0
+      ? dayEntries.reduce((sum, e) => sum + (MOOD_SCORE[e.mood ?? 'calm'] ?? 3), 0) / dayEntries.length
+      : null;
+
+    return {
+      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      mood: avgScore !== null ? +avgScore.toFixed(2) : null,
+    };
   });
+
+  // Mood breakdown — each entry's stored mood, no detectMood
+  const MOOD_LIST = ['happy', 'calm', 'sad', 'anxious', 'angry', 'grateful', 'energized'];
+  const moodCounts = MOOD_LIST.map((mood) => ({
+    mood,
+    emoji: getMoodMeta(mood).emoji,
+    count: entries.filter((e) => e.mood === mood).length,
+  })).filter((m) => m.count > 0);
 
   const STATS = [
     { label: 'Total entries', value: totalEntries, icon: BookOpen, color: 'text-coral' },
     { label: 'Current streak', value: `${streak}d`, icon: TrendingUp, color: 'text-yellow' },
-    { label: 'Top mood', value: topMood, icon: Zap, color: 'text-coral' },
+    { label: 'Top mood', value: `${topMoodMeta.emoji} ${topMood}`, icon: Zap, color: 'text-coral' },
   ];
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex h-screen overflow-hidden bg-beige">
@@ -131,27 +181,33 @@ export default function InsightsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
+          <div className="space-y-6" style={{ minWidth: 0 }}>
             {/* Mood chart */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="bg-surface border border-pink-light/30 rounded-[20px] p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-dark mb-4 font-sans">Mood over the last 30 days</h3>
-              <div style={{ width: '100%', height: '300px', minHeight: '300px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ff5e6c" stopOpacity={0.6} />
-                        <stop offset="95%" stopColor="#ff5e6c" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,170,171,0.3)" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#a89880' }} tickLine={false} axisLine={false} interval={5} />
-                    <YAxis domain={[0, 5]} tick={{ fontSize: 10, fill: '#a89880' }} tickLine={false} axisLine={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area type="monotone" dataKey="mood" stroke="#ff5e6c" strokeWidth={2} fill="url(#moodGradient)" dot={{ r: 3, fill: '#feb300' }} connectNulls={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div style={{ width: '100%', height: '300px', minHeight: '300px', minWidth: 0 }}>
+                {chartData.some(d => d.mood !== null) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ff5e6c" stopOpacity={0.6} />
+                          <stop offset="95%" stopColor="#ff5e6c" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,170,171,0.3)" vertical={false} />
+                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#a89880' }} tickLine={false} axisLine={false} interval={5} />
+                      <YAxis domain={[0, 5]} tick={{ fontSize: 10, fill: '#a89880' }} tickLine={false} axisLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area type="monotone" dataKey="mood" stroke="#ff5e6c" strokeWidth={2} fill="url(#moodGradient)" dot={{ r: 3, fill: '#feb300' }} connectNulls={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#a89880', fontFamily: 'var(--font-dm)', fontSize: '14px' }}>
+                    No data yet — start writing to see your mood chart
+                  </div>
+                )}
               </div>
             </motion.div>
 
@@ -170,7 +226,7 @@ export default function InsightsPage() {
             </motion.div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6" style={{ minWidth: 0 }}>
             {/* Weekly AI reflection */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
               className="bg-surface border-l-[4px] border-coral border-y border-y-pink-light/30 border-r border-r-pink-light/30 rounded-[16px] p-5 shadow-sm">
@@ -195,15 +251,17 @@ export default function InsightsPage() {
               )}
             </motion.div>
 
-            {/* Mood breakdown */}
+            {/* Mood breakdown — entry.mood only, no detectMood */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
               className="bg-surface border border-pink-light/30 rounded-[20px] p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-dark mb-4 font-sans">Mood breakdown</h3>
-              {loading ? <div className="shimmer h-32 rounded-lg" /> : (
+              {loading ? <div className="shimmer h-32 rounded-lg" /> : moodCounts.length === 0 ? (
+                <p className="text-[14px] text-muted font-serif italic">No mood data yet. Start writing!</p>
+              ) : (
                 <div className="space-y-3">
-                  {Object.entries(moodCounts).sort((a, b) => b[1] - a[1]).map(([mood, count]) => (
+                  {moodCounts.map(({ mood, emoji, count }) => (
                     <div key={mood} className="flex items-center gap-3">
-                      <span className="text-xl w-8 text-center">{moodEmojis[mood] ?? '📝'}</span>
+                      <span className="text-xl w-8 text-center">{emoji}</span>
                       <span className="text-[13px] text-dark capitalize w-20 font-sans font-medium">{mood}</span>
                       <div className="flex-1 bg-pink-light/20 rounded-full h-2">
                         <motion.div

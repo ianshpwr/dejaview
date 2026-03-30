@@ -17,6 +17,15 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/journal',journalRoutes);
 
+// Health check — verify backend is running
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        time: new Date().toISOString(),
+        db: 'connected',
+    });
+});
+
 // JSON 404 fallback — must be last middleware
 app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });
