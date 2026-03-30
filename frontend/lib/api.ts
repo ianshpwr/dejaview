@@ -66,8 +66,8 @@ export interface ChatResponse {
 
 // ─── API Functions ─────────────────────────────────────────────────────────────
 
-export async function getEntries(userId: number): Promise<JournalEntry[]> {
-  return request<JournalEntry[]>(`/journal/entries/${userId}`);
+export async function getEntries(userId?: number): Promise<JournalEntry[]> {
+  return request<JournalEntry[]>('/journal/entries');
 }
 
 export async function createEntry(
