@@ -112,9 +112,13 @@ export default function ChatPage() {
 
       const response = await chatWithAI(textToSend.trim(), history);
 
+      const replyContent = typeof response === 'string'
+        ? response
+        : response.reply || '';
+
       const aiMessage = {
         role: 'ai' as const,
-        content: response.reply || '',
+        content: replyContent,
         timestamp: Date.now()
       };
 
