@@ -186,7 +186,7 @@ export default function InsightsPage() {
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="bg-surface border border-pink-light/30 rounded-[20px] p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-dark mb-4 font-sans">Mood over the last 30 days</h3>
-              <div style={{ width: '100%', height: '300px', minHeight: '300px', minWidth: 0 }}>
+              <div style={{ width: '100%', height: '300px', minHeight: '300px', minWidth: '0' }}>
                 {chartData.some(d => d.mood !== null) ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
@@ -204,9 +204,9 @@ export default function InsightsPage() {
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#a89880', fontFamily: 'var(--font-dm)', fontSize: '14px' }}>
-                    No data yet — start writing to see your mood chart
-                  </div>
+                  <p style={{ textAlign: 'center', color: '#a89880', paddingTop: '130px' }}>
+                    No data yet
+                  </p>
                 )}
               </div>
             </motion.div>

@@ -9,11 +9,21 @@ const prisma = new PrismaClient();
 // ── Health / debug ─────────────────────────────────────────────────────────
 
 router.get('/', (req, res) => {
-    res.json({ status: 'Journal API is working' });
+    try {
+        res.json({ status: 'Journal API is working' });
+    } catch (err) {
+        console.error('[ERROR]', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 router.get("/debug-faiss", (req, res) => {
-    res.json({ FAISS_URL: process.env.FAISS_URL });
+    try {
+        res.json({ FAISS_URL: process.env.FAISS_URL });
+    } catch (err) {
+        console.error('[ERROR]', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ── GET /entries/:userId (All entries for a user) ────────
@@ -26,8 +36,8 @@ router.get('/entries/:userId', async (req, res) => {
         });
         res.status(200).json(entries);
     } catch (err) {
-        console.error('[ROUTE ERROR]', req.method, req.path, err);
-        res.status(500).json({ error: err.message || 'Failed to fetch entries' });
+        console.error('[ERROR]', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -48,8 +58,8 @@ router.get('/entries/single/:id', async (req, res) => {
         }
         res.json(entry);
     } catch (err) {
-        console.error('[ROUTE ERROR]', req.method, req.path, err);
-        res.status(500).json({ error: err.message || 'Failed to fetch entry' });
+        console.error('[ERROR]', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -58,13 +68,17 @@ router.get('/entries/single/:id', async (req, res) => {
 router.post('/entries', async (req, res) => {
     const { title, content, userId, mood } = req.body;
 
-    // Fault-tolerant FAISS — a FAISS failure must never prevent saving
     let faissId = null;
     try {
-        const { addToFaiss } = await import("../services/faiss.js");
-        faissId = await addToFaiss(content);
-    } catch (faissErr) {
-        console.error('FAISS unavailable, saving without embedding:', faissErr.message);
+        const faissRes = await fetch(process.env.FAISS_URL + '/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: content })
+        });
+        const faissData = await faissRes.json();
+        faissId = faissData.faissId ?? faissData.id ?? null;
+    } catch (e) {
+        console.error('FAISS failed, continuing without embedding:', e.message);
     }
 
     try {
@@ -72,15 +86,15 @@ router.post('/entries', async (req, res) => {
             data: {
                 title: title || '',
                 content: content,
-                userId: Number(userId),
-                faissId: faissId ?? null,
+                userId: req.userId || Number(userId),
+                faissId: faissId,
                 mood: mood || 'calm',
             },
         });
         res.status(201).json(newEntry);
     } catch (err) {
-        console.error('[ROUTE ERROR]', req.method, req.path, err);
-        res.status(500).json({ error: err.message || 'Error creating journal entry' });
+        console.error('[ERROR]', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -100,8 +114,8 @@ router.patch('/entries/:id', async (req, res) => {
         });
         res.status(200).json(updatedEntry);
     } catch (err) {
-        console.error('[ROUTE ERROR]', req.method, req.path, err);
-        res.status(500).json({ error: err.message || 'Error updating journal entry' });
+        console.error('[ERROR]', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -115,8 +129,8 @@ router.delete('/entries/:id', async (req, res) => {
         });
         res.status(200).json({ message: "Entry deleted successfully" });
     } catch (err) {
-        console.error('[ROUTE ERROR]', req.method, req.path, err);
-        res.status(500).json({ error: err.message || 'Error deleting journal entry' });
+        console.error('[ERROR]', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -126,7 +140,6 @@ router.post("/entries/chat", async (req, res) => {
     const { query, userId, history = [] } = req.body;
 
     try {
-        // Fault-tolerant FAISS search — fall back to empty if FAISS is down
         let journals = [];
         try {
             const raw = await searchFaiss(query, 5);
@@ -136,7 +149,6 @@ router.post("/entries/chat", async (req, res) => {
             });
         } catch (faissErr) {
             console.error('FAISS search failed, using empty context:', faissErr.message);
-            // Fall back: fetch the 5 most recent entries as context
             journals = await prisma.journal.findMany({
                 where: { userId: Number(userId) },
                 orderBy: { createdAt: 'desc' },
@@ -148,8 +160,8 @@ router.post("/entries/chat", async (req, res) => {
         res.json({ answer, memories: journals });
 
     } catch (err) {
-        console.error('[ROUTE ERROR]', req.method, req.path, err);
-        res.status(500).json({ error: err.message || 'Chat failed' });
+        console.error('[ERROR]', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
